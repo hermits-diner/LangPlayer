@@ -96,6 +96,13 @@ interface AppState {
   hideSubtitles: boolean
   /** 반복을 다 채우면 자동으로 다음 문장으로 넘어간다 */
   autoAdvance: boolean
+  /**
+   * 받아쓰기를 채점할지.
+   *
+   * 끄면 Enter가 곧장 다음 문장으로 넘어가고 점수 표시도 사라진다.
+   * 이미 채점한 기록은 지우지 않으므로 다시 켜면 그대로 돌아온다.
+   */
+  gradingEnabled: boolean
   inputs: Record<string, string>
   results: Record<string, DictationResult>
 
@@ -109,6 +116,7 @@ interface AppState {
     loopSettings: LoopSettings
     hideSubtitles: boolean
     autoAdvance: boolean
+    gradingEnabled: boolean
   }) => void
   clearAll: () => void
 
@@ -121,6 +129,7 @@ interface AppState {
 
   toggleHideSubtitles: () => void
   toggleAutoAdvance: () => void
+  toggleGrading: () => void
   setInput: (key: string, text: string) => void
   gradeActive: () => void
   clearActiveResult: () => void
@@ -177,6 +186,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
   hideSubtitles: true,
   autoAdvance: false,
+  gradingEnabled: true,
   inputs: {},
   results: {},
 
@@ -217,8 +227,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
       results: session.results,
     }),
 
-  applyStoredSettings: ({ loopSettings, hideSubtitles, autoAdvance }) =>
-    set({ loopSettings, hideSubtitles, autoAdvance }),
+  applyStoredSettings: ({ loopSettings, hideSubtitles, autoAdvance, gradingEnabled }) =>
+    set({ loopSettings, hideSubtitles, autoAdvance, gradingEnabled }),
 
   clearAll: () =>
     set((state) => {
@@ -267,6 +277,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
   toggleHideSubtitles: () => set((state) => ({ hideSubtitles: !state.hideSubtitles })),
 
   toggleAutoAdvance: () => set((state) => ({ autoAdvance: !state.autoAdvance })),
+
+  toggleGrading: () => set((state) => ({ gradingEnabled: !state.gradingEnabled })),
 
   setInput: (key, text) => set((state) => ({ inputs: { ...state.inputs, [key]: text } })),
 

@@ -28,6 +28,7 @@ export function SegmentList({ onSelect, onMerge, onSplit }: SegmentListProps) {
   const results = useAppStore((s) => s.results)
   const loopStatus = useAppStore((s) => s.loopStatus)
   const selection = useAppStore((s) => s.selection)
+  const gradingEnabled = useAppStore((s) => s.gradingEnabled)
   const toggleSelection = useAppStore((s) => s.toggleSelection)
 
   const listRef = useRef<HTMLUListElement>(null)
@@ -53,7 +54,7 @@ export function SegmentList({ onSelect, onMerge, onSplit }: SegmentListProps) {
           isSelected={selection.includes(index)}
           isLooping={loopStatus.running && loopStatus.targetId === segment.id}
           hidden={hideSubtitles}
-          accuracy={results[segmentKey(segment)]?.accuracy}
+          accuracy={gradingEnabled ? results[segmentKey(segment)]?.accuracy : undefined}
           onSelect={onSelect}
           onToggleSelect={toggleSelection}
           onMerge={onMerge}

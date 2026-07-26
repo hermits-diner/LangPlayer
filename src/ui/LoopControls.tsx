@@ -28,6 +28,8 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
   const mediaKind = useAppStore((s) => s.media?.kind)
   const hideSubtitles = useAppStore((s) => s.hideSubtitles)
   const autoAdvance = useAppStore((s) => s.autoAdvance)
+  const gradingEnabled = useAppStore((s) => s.gradingEnabled)
+  const toggleGrading = useAppStore((s) => s.toggleGrading)
   const update = useAppStore((s) => s.updateLoopSettings)
   const nudgeOffset = useAppStore((s) => s.nudgeOffset)
   const resetSync = useAppStore((s) => s.resetSync)
@@ -159,6 +161,18 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
       </Field>
 
       <div className="ml-auto flex items-center gap-2">
+        <button
+          type="button"
+          onClick={toggleGrading}
+          className={`chip ${gradingEnabled ? 'chip-active' : ''}`}
+          title={
+            gradingEnabled
+              ? '끄면 Enter가 곧바로 다음 문장으로 넘어갑니다 (점수 표시도 사라집니다)'
+              : '켜면 다음 문장으로 넘어갈 때 방금 문장을 채점합니다'
+          }
+        >
+          채점
+        </button>
         <button type="button" onClick={toggleAutoAdvance} className={`chip ${autoAdvance ? 'chip-active' : ''}`}>
           자동 넘김
         </button>

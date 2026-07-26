@@ -49,6 +49,8 @@ export interface SettingsRow {
   loopSettings: StoredLoopSettings
   hideSubtitles: boolean
   autoAdvance: boolean
+  /** 나중에 생긴 설정이라 옛 기록에는 없다 — 없으면 켜진 것으로 본다 */
+  gradingEnabled?: boolean
 }
 
 class LangPlayerDatabase extends Dexie {

@@ -50,6 +50,7 @@ export function usePersistence() {
         loopSettings: deserializeLoopSettings(row.loopSettings),
         hideSubtitles: row.hideSubtitles,
         autoAdvance: row.autoAdvance,
+        gradingEnabled: row.gradingEnabled ?? true,
       })
     })
 
@@ -62,6 +63,7 @@ export function usePersistence() {
   const loopSettings = useAppStore((s) => s.loopSettings)
   const hideSubtitles = useAppStore((s) => s.hideSubtitles)
   const autoAdvance = useAppStore((s) => s.autoAdvance)
+  const gradingEnabled = useAppStore((s) => s.gradingEnabled)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -70,11 +72,12 @@ export function usePersistence() {
         loopSettings: serializeLoopSettings(loopSettings),
         hideSubtitles,
         autoAdvance,
+        gradingEnabled,
       })
     }, SAVE_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [loopSettings, hideSubtitles, autoAdvance])
+  }, [loopSettings, hideSubtitles, autoAdvance, gradingEnabled])
 
   // ─── 세션 복원 ──────────────────────────────────────────────────
   useEffect(() => {

@@ -15,6 +15,7 @@ export function DictationPane({ onReplay, onNext }: { onReplay: () => void; onNe
   const inputs = useAppStore((s) => s.inputs)
   const results = useAppStore((s) => s.results)
   const hideSubtitles = useAppStore((s) => s.hideSubtitles)
+  const gradingEnabled = useAppStore((s) => s.gradingEnabled)
   const setInput = useAppStore((s) => s.setInput)
   const gradeActive = useAppStore((s) => s.gradeActive)
   const clearActiveResult = useAppStore((s) => s.clearActiveResult)
@@ -23,7 +24,7 @@ export function DictationPane({ onReplay, onNext }: { onReplay: () => void; onNe
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const segment = segments[activeIndex]
   const key = segment ? segmentKey(segment) : null
-  const result = key ? results[key] : undefined
+  const result = gradingEnabled && key ? results[key] : undefined
 
   // 문장을 옮기면 입력창으로 포커스를 넘겨 바로 타이핑할 수 있게 한다
   useEffect(() => {
@@ -41,13 +42,13 @@ export function DictationPane({ onReplay, onNext }: { onReplay: () => void; onNe
   const value = inputs[key] ?? ''
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Enter는 상황에 따라 두 가지 일을 한다.
-    // 아직 채점 전이면 채점하고, 이미 채점을 봤으면 다음 문장으로 넘어간다.
-    // 받아쓰기 → 확인 → 다음으로 이어지는 흐름을 한 손가락으로 굴리기 위해서다.
+    // Enter는 언제나 '다음 문장'이다. 다 썼으면 Enter — 그게 전부다.
+    // 채점을 켜 두었으면 넘어가면서 방금 문장을 함께 채점한다. 점수는 문장
+    // 목록에 남으므로, 확인하고 싶으면 되돌아가서 보면 된다.
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      if (result) onNext()
-      else gradeActive()
+      if (gradingEnabled) gradeActive()
+      onNext()
       return
     }
 
@@ -69,7 +70,7 @@ export function DictationPane({ onReplay, onNext }: { onReplay: () => void; onNe
     <div className="flex h-full flex-col gap-3 p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs text-slate-500">
-          <kbd className="kbd">Enter</kbd> {result ? '다음 문장' : '채점'}
+          <kbd className="kbd">Enter</kbd> 다음 문장{gradingEnabled && ' (채점하며)'}
           <kbd className="kbd">F5</kbd> 구간 반복
           <kbd className="kbd">Tab</kbd> 정답 보기
         </div>

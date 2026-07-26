@@ -60,6 +60,10 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
       const store = useAppStore.getState()
 
       // ── 어디서나 듣는 키 ────────────────────────────────────────
+      //
+      // F3은 크롬의 '다음 찾기'와 겹친다. 페이지가 먼저 keydown을 받으므로
+      // preventDefault로 막을 수 있지만, 찾기 막대가 열려 있으면 그쪽이 가져간다.
+      // 그럴 때는 Esc로 찾기 막대를 닫으면 다시 앱으로 온다.
       switch (e.key) {
         case 'F5':
           e.preventDefault()

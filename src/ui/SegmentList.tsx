@@ -133,13 +133,24 @@ function SegmentRow({
           </p>
         </button>
 
+        {/* 선택된 문장에서만, 그리고 늘 보이게 둔다 — 단축키를 알리는 자리이기도 하다 */}
         {isActive && (
-          <div className="mt-1.5 flex gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
-            <button type="button" onClick={onMerge} className="chip">
-              다음과 합치기
+          <div className="mt-1.5 flex gap-1">
+            <button
+              type="button"
+              onClick={onMerge}
+              className="chip"
+              title="여러 문장을 골라 두었으면 그 범위를 통째로 합칩니다 (F3)"
+            >
+              다음과 합치기 <kbd className="kbd ml-0.5">F3</kbd>
             </button>
-            <button type="button" onClick={onSplit} className="chip">
-              쪼개기
+            <button
+              type="button"
+              onClick={onSplit}
+              className="chip"
+              title="재생 위치에서 가릅니다. 문장 첫머리에 있으면 원래 자막 경계로 되돌립니다 (F4)"
+            >
+              쪼개기 <kbd className="kbd ml-0.5">F4</kbd>
             </button>
           </div>
         )}

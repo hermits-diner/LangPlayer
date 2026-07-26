@@ -171,15 +171,23 @@ export default function App() {
     playSegment(from)
   }, [playSegment])
 
+  /**
+   * 쪼개기는 세 가지 기준을 차례로 시도한다.
+   *
+   *   1. **문장 단위** — 구간에 문장이 여럿이면 문장별로 가른다. 경계는 원래 큐
+   *      경계나 파형의 쉼에 맞춘다. 이 앱의 학습 단위가 문장이므로 이게 기본이다.
+   *   2. **재생 위치** — 문장이 하나뿐인데 사용자가 어딘가를 짚어 뒀다면 거기서
+   *   3. **큐 경계** — 둘 다 아니면 원래 자막이 나눠 둔 대로 되돌린다
+   */
   const splitSection = useCallback(() => {
     const store = useAppStore.getState()
     const segment = store.segments[store.activeIndex]
     const index = store.activeIndex
 
-    // 재생 위치가 문장 한가운데쯤이면 거기서 가르고, 가장자리에 붙어 있으면
-    // (막 문장 앞으로 탐색한 직후가 그렇다) 원래 자막 큐 경계로 되돌린다
-    if (segment && canSplitAt(segment, store.currentTime)) store.splitActiveAt(store.currentTime)
-    else store.splitActive()
+    if (!store.splitActiveBySentence()) {
+      if (segment && canSplitAt(segment, store.currentTime)) store.splitActiveAt(store.currentTime)
+      else store.splitActive()
+    }
 
     playSegment(index)
   }, [playSegment])

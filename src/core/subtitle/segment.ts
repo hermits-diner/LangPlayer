@@ -43,7 +43,8 @@ const ABBREVIATION =
 /** 이니셜 (J. K. Rowling) */
 const INITIAL = /(?:^|\s)[A-Z]\.$/
 
-function endsSentence(text: string): boolean {
+/** 이 텍스트가 문장 끝으로 마무리되는가 (약어·이니셜은 제외) */
+export function endsSentence(text: string): boolean {
   if (!SENTENCE_END.test(text)) return false
   if (ABBREVIATION.test(text)) return false
   if (INITIAL.test(text)) return false
@@ -100,8 +101,10 @@ function canMerge(current: Segment, next: Cue, opts: SegmentOptions): boolean {
   if (mergedDuration > opts.maxDurationSec) return false
   if (mergedChars > opts.maxChars) return false
 
-  // 문장이 끝났으면 붙이지 않는다
-  if (endsSentence(current.text)) return false
+  // 문장이 끝났으면 붙이지 않는다.
+  // 단, 다음이 소문자로 시작하면 아직 끝난 게 아니다 — 대사 뒤에 붙는
+  // 인용구가 대표적이다. `"Go away!"` / `she said.` 는 한 문장이다.
+  if (endsSentence(current.text) && !/^[a-z]/.test(next.text)) return false
 
   // 문장부호가 없는 자동생성 자막 대비:
   // 이미 충분히 길어졌다면 짧은 쉼도 경계로 인정한다

@@ -3,6 +3,8 @@ import type { DictationResult } from '../core/dictation/score'
 import { scoreDictation } from '../core/dictation/score'
 import { DEFAULT_LOOP_SETTINGS, type LoopSettings, type LoopStatus } from '../core/loop/LoopController'
 import { mergeWithNext, splitSegment, transformSegments } from '../core/subtitle/segment'
+import { splitSegmentBySentence } from '../core/subtitle/sentenceSplit'
+import { ENVELOPE_FRAME_SEC } from '../core/sync/audioAnalysis'
 import type { Cue, Segment } from '../core/subtitle/types'
 
 /**
@@ -137,6 +139,8 @@ interface AppState {
   mergeRange: (from: number, to: number) => void
   splitActive: () => void
   splitActiveAt: (timeSec: number) => void
+  /** 현재 문장을 문장 단위로 쪼갠다. 문장이 하나뿐이면 아무 일도 하지 않고 false */
+  splitActiveBySentence: () => boolean
   nudgeOffset: (deltaSec: number) => void
   /** 자동 맞춤 결과처럼 배율까지 포함한 보정을 통째로 적용 */
   applySync: (next: SyncTransform) => void
@@ -354,6 +358,28 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
     const next = [...segments.slice(0, activeIndex), left, right, ...segments.slice(activeIndex + 1)]
     set({ segments: next.map((s, i) => ({ ...s, id: `seg-${i}` })), selection: [] })
+  },
+
+  splitActiveBySentence: () => {
+    const { segments, activeIndex, cues, sync, waveform } = get()
+    const target = segments[activeIndex]
+    if (!target) return false
+
+    // 이 구간에 걸친 원래 큐 경계들 — 자막이 준 값이라 가장 믿을 만하다
+    const cueBoundaries = cues
+      .map((cue) => cue.end * sync.scale + sync.offsetSec)
+      .filter((time) => time > target.start && time < target.end)
+
+    const pieces = splitSegmentBySentence(target, {
+      cueBoundaries,
+      envelope: waveform,
+      envelopeFrameSec: ENVELOPE_FRAME_SEC,
+    })
+    if (!pieces) return false
+
+    const next = [...segments.slice(0, activeIndex), ...pieces, ...segments.slice(activeIndex + 1)]
+    set({ segments: next.map((s, i) => ({ ...s, id: `seg-${i}` })), selection: [] })
+    return true
   },
 
   splitActive: () => {

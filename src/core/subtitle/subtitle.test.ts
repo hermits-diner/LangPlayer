@@ -213,6 +213,13 @@ describe('buildSegments', () => {
     expect(segments).toHaveLength(2)
   })
 
+  it('대사 뒤 인용구를 한 문장으로 붙인다', () => {
+    const segments = buildSegments([cue('a', 0, 2, '"Go away!"'), cue('b', 2, 4, 'she said quietly.')])
+
+    expect(segments).toHaveLength(1)
+    expect(segments[0].text).toBe('"Go away!" she said quietly.')
+  })
+
   it('약어 마침표에서는 끊지 않는다', () => {
     const segments = buildSegments([cue('a', 0, 2, 'I met Mr.'), cue('b', 2, 4, 'Smith yesterday.')])
 

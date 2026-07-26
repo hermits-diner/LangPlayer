@@ -655,7 +655,7 @@ export default function App() {
           />
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <DictationPane onReplay={replay} onNext={() => move(1)} />
+            <DictationPane onReplay={replay} onNext={() => move(1)} onPrev={() => move(-1)} />
           </div>
 
           <TextWindow onFocusLine={focusLine} />

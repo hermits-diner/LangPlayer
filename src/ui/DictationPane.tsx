@@ -9,7 +9,13 @@ import { DiffView } from './DiffView'
  * 끝나야 한다. 문장을 옮길 때마다 포커스가 따라오도록 해서 마우스를 쓰지
  * 않고도 계속 진행할 수 있게 한다.
  */
-export function DictationPane({ onReplay, onNext }: { onReplay: () => void; onNext: () => void }) {
+export interface DictationPaneProps {
+  onReplay: () => void
+  onNext: () => void
+  onPrev: () => void
+}
+
+export function DictationPane({ onReplay, onNext, onPrev }: DictationPaneProps) {
   const segments = useAppStore((s) => s.segments)
   const activeIndex = useAppStore((s) => s.activeIndex)
   const inputs = useAppStore((s) => s.inputs)
@@ -52,6 +58,15 @@ export function DictationPane({ onReplay, onNext }: { onReplay: () => void; onNe
       return
     }
 
+    // 이 칸에는 문장 하나만 담긴다. 커서를 위아래로 옮길 일이 거의 없으므로
+    // ↑↓를 앞뒤 문장 이동에 내준다. (전체 문서를 다루는 텍스트창은 그대로 둔다)
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (e.key === 'ArrowDown') onNext()
+      else onPrev()
+      return
+    }
+
     // 입력 중에도 다시 듣기와 정답 보기는 손을 떼지 않고 쓸 수 있어야 한다
     if (e.key === 'Tab') {
       e.preventDefault()
@@ -69,8 +84,10 @@ export function DictationPane({ onReplay, onNext }: { onReplay: () => void; onNe
   return (
     <div className="flex h-full flex-col gap-3 p-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs text-slate-500">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
           <kbd className="kbd">Enter</kbd> 다음 문장{gradingEnabled && ' (채점하며)'}
+          <kbd className="kbd">↑</kbd>
+          <kbd className="kbd">↓</kbd> 앞뒤 문장
           <kbd className="kbd">F5</kbd> 구간 반복
           <kbd className="kbd">Tab</kbd> 정답 보기
         </div>

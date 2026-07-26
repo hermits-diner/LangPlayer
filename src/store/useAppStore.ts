@@ -17,6 +17,9 @@ export interface SyncTransform {
 
 export const IDENTITY_SYNC: SyncTransform = { scale: 1, offsetSec: 0 }
 
+/** 파형 준비 상태. YouTube는 오디오에 접근할 수 없어 'unavailable'로 끝난다 */
+export type WaveformState = 'idle' | 'loading' | 'ready' | 'unavailable'
+
 export interface MediaSource {
   kind: 'video' | 'audio' | 'youtube'
   /** object URL 또는 YouTube video id */
@@ -53,6 +56,21 @@ export function segmentKey(segment: Segment): string {
   return segment.cueIds[0] ?? segment.id
 }
 
+/**
+ * 나누기로 만들어질 조각이 이보다 짧으면 의미가 없다.
+ *
+ * 문장을 막 고른 직후에는 재생 위치가 문장 첫머리에 붙어 있다. 그 상태로
+ * 나누면 0.1초짜리 부스러기가 생기는데, 사용자가 원한 결과일 리 없다.
+ */
+export const MIN_SPLIT_MARGIN_SEC = 0.5
+
+/** 이 지점에서 문장을 갈라도 양쪽이 쓸 만한 길이로 남는가 */
+export function canSplitAt(segment: { start: number; end: number }, timeSec: number): boolean {
+  return (
+    timeSec >= segment.start + MIN_SPLIT_MARGIN_SEC && timeSec <= segment.end - MIN_SPLIT_MARGIN_SEC
+  )
+}
+
 interface AppState {
   media: MediaSource | null
   subtitle: SubtitleInfo | null
@@ -60,6 +78,14 @@ interface AppState {
   segments: Segment[]
   activeIndex: number
   sync: SyncTransform
+
+  /** 다중 선택된 문장 번호들 (오름차순). 연속 재생 대상이 된다 */
+  selection: number[]
+  /** 임시로 한 덩어리처럼 다룰 구간 — Ctrl+G. Enter로 풀린다 */
+  tempGroup: { from: number; to: number } | null
+  /** 파형 그리기와 자동 맞춤이 함께 쓰는 에너지 포락선 */
+  waveform: Float32Array | null
+  waveformState: WaveformState
 
   loopSettings: LoopSettings
   loopStatus: LoopStatus
@@ -97,8 +123,18 @@ interface AppState {
   gradeActive: () => void
   clearActiveResult: () => void
 
+  /** 개별 선택 토글 (오른쪽 클릭) */
+  toggleSelection: (index: number) => void
+  /** 두 지점 사이를 모두 선택 (Shift+클릭, 드래그) */
+  selectRange: (from: number, to: number) => void
+  clearSelection: () => void
+  setTempGroup: (group: { from: number; to: number } | null) => void
+
+  setWaveform: (envelope: Float32Array | null, state: WaveformState) => void
+
   mergeActiveWithNext: () => void
   splitActive: () => void
+  splitActiveAt: (timeSec: number) => void
   nudgeOffset: (deltaSec: number) => void
   /** 자동 맞춤 결과처럼 배율까지 포함한 보정을 통째로 적용 */
   applySync: (next: SyncTransform) => void
@@ -124,6 +160,11 @@ export const useAppStore = create<AppState>()((set, get) => ({
   activeIndex: -1,
   sync: IDENTITY_SYNC,
 
+  selection: [],
+  tempGroup: null,
+  waveform: null,
+  waveformState: 'idle',
+
   loopSettings: DEFAULT_LOOP_SETTINGS,
   loopStatus: IDLE_STATUS,
   currentTime: 0,
@@ -142,7 +183,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
       if (state.media?.kind !== 'youtube' && state.media?.src) {
         URL.revokeObjectURL(state.media.src)
       }
-      return { media, error: null, currentTime: 0 }
+      return { media, error: null, currentTime: 0, waveform: null, waveformState: 'idle' }
     }),
 
   setSubtitle: (subtitle, cues, segments) =>
@@ -152,6 +193,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
       segments,
       activeIndex: segments.length > 0 ? 0 : -1,
       sync: IDENTITY_SYNC,
+      selection: [],
+      tempGroup: null,
       inputs: {},
       results: {},
       error: null,
@@ -183,6 +226,10 @@ export const useAppStore = create<AppState>()((set, get) => ({
         segments: [],
         activeIndex: -1,
         sync: IDENTITY_SYNC,
+        selection: [],
+        tempGroup: null,
+        waveform: null,
+        waveformState: 'idle' as const,
         inputs: {},
         results: {},
         loopStatus: IDLE_STATUS,
@@ -242,7 +289,58 @@ export const useAppStore = create<AppState>()((set, get) => ({
   mergeActiveWithNext: () => {
     const { segments, activeIndex } = get()
     if (activeIndex < 0 || activeIndex >= segments.length - 1) return
-    set({ segments: mergeWithNext(segments, activeIndex) })
+    set({ segments: mergeWithNext(segments, activeIndex), selection: [] })
+  },
+
+  toggleSelection: (index) =>
+    set((state) => ({
+      selection: state.selection.includes(index)
+        ? state.selection.filter((i) => i !== index)
+        : [...state.selection, index].sort((a, b) => a - b),
+    })),
+
+  selectRange: (from, to) => {
+    const low = Math.min(from, to)
+    const high = Math.max(from, to)
+    set({ selection: Array.from({ length: high - low + 1 }, (_, i) => low + i) })
+  },
+
+  clearSelection: () => set({ selection: [], tempGroup: null }),
+
+  setTempGroup: (tempGroup) => set({ tempGroup }),
+
+  setWaveform: (waveform, waveformState) => set({ waveform, waveformState }),
+
+  /** 음파창에서 찍은 지점을 경계로 현재 문장을 둘로 가른다 */
+  splitActiveAt: (timeSec) => {
+    const { segments, activeIndex } = get()
+    const target = segments[activeIndex]
+    // 가장자리에 너무 붙으면 길이 0에 가까운 조각이 생겨 쓸모가 없다
+    if (!target || !canSplitAt(target, timeSec)) return
+
+    // 텍스트를 어디서 끊을지는 알 수 없으니 시간 비율에 맞춰 단어 경계로 가른다.
+    // 완벽하진 않지만 양쪽에 전체 문장을 복제해 두는 것보다 훨씬 쓸모 있다.
+    const words = target.text.split(/\s+/).filter(Boolean)
+    const ratio = (timeSec - target.start) / (target.end - target.start)
+    const cut = Math.max(1, Math.min(Math.max(1, words.length - 1), Math.round(ratio * words.length)))
+
+    // 두 조각은 서로 다른 받아쓰기 기록을 가져야 한다
+    const base = segmentKey(target)
+    const left: Segment = {
+      ...target,
+      end: timeSec,
+      text: words.slice(0, cut).join(' '),
+      cueIds: [base],
+    }
+    const right: Segment = {
+      ...target,
+      start: timeSec,
+      text: words.slice(cut).join(' '),
+      cueIds: [`${base}#${timeSec.toFixed(2)}`],
+    }
+
+    const next = [...segments.slice(0, activeIndex), left, right, ...segments.slice(activeIndex + 1)]
+    set({ segments: next.map((s, i) => ({ ...s, id: `seg-${i}` })), selection: [] })
   },
 
   splitActive: () => {

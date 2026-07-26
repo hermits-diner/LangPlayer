@@ -9,12 +9,23 @@ import { formatTime, maskText } from './format'
  * 클릭 한 번이 곧 "이 구간을 N번 반복"이다. 자동 병합이 어긋난 문장은
  * 여기서 바로 합치고 쪼갤 수 있어야 학습 흐름이 끊기지 않는다.
  */
-export function SegmentList({ onSelect }: { onSelect: (index: number) => void }) {
+export interface SegmentSelectModifiers {
+  shift: boolean
+  ctrl: boolean
+}
+
+export function SegmentList({
+  onSelect,
+}: {
+  onSelect: (index: number, modifiers: SegmentSelectModifiers) => void
+}) {
   const segments = useAppStore((s) => s.segments)
   const activeIndex = useAppStore((s) => s.activeIndex)
   const hideSubtitles = useAppStore((s) => s.hideSubtitles)
   const results = useAppStore((s) => s.results)
   const loopStatus = useAppStore((s) => s.loopStatus)
+  const selection = useAppStore((s) => s.selection)
+  const toggleSelection = useAppStore((s) => s.toggleSelection)
 
   const listRef = useRef<HTMLUListElement>(null)
 
@@ -36,10 +47,12 @@ export function SegmentList({ onSelect }: { onSelect: (index: number) => void })
           segment={segment}
           index={index}
           isActive={index === activeIndex}
+          isSelected={selection.includes(index)}
           isLooping={loopStatus.running && loopStatus.targetId === segment.id}
           hidden={hideSubtitles}
           accuracy={results[segmentKey(segment)]?.accuracy}
           onSelect={onSelect}
+          onToggleSelect={toggleSelection}
         />
       ))}
     </ul>
@@ -50,26 +63,49 @@ interface RowProps {
   segment: Segment
   index: number
   isActive: boolean
+  isSelected: boolean
   isLooping: boolean
   hidden: boolean
   accuracy: number | undefined
-  onSelect: (index: number) => void
+  onSelect: (index: number, modifiers: SegmentSelectModifiers) => void
+  onToggleSelect: (index: number) => void
 }
 
-function SegmentRow({ segment, index, isActive, isLooping, hidden, accuracy, onSelect }: RowProps) {
+function SegmentRow({
+  segment,
+  index,
+  isActive,
+  isSelected,
+  isLooping,
+  hidden,
+  accuracy,
+  onSelect,
+  onToggleSelect,
+}: RowProps) {
   const mergeActiveWithNext = useAppStore((s) => s.mergeActiveWithNext)
   const splitActive = useAppStore((s) => s.splitActive)
+
+  const background = isActive
+    ? 'border-sky-400 bg-sky-400/10'
+    : isSelected
+      ? 'border-slate-400 bg-white/[0.07]'
+      : 'border-transparent hover:border-white/20 hover:bg-white/5'
 
   return (
     <li data-index={index}>
       <div
-        className={`group border-l-2 px-3 py-2 transition ${
-          isActive
-            ? 'border-sky-400 bg-sky-400/10'
-            : 'border-transparent hover:border-white/20 hover:bg-white/5'
-        }`}
+        className={`group border-l-2 px-3 py-2 transition ${background}`}
+        // 오른쪽 클릭은 개별 선택 토글 — 브라우저 기본 메뉴는 막는다
+        onContextMenu={(e) => {
+          e.preventDefault()
+          onToggleSelect(index)
+        }}
       >
-        <button type="button" onClick={() => onSelect(index)} className="w-full text-left">
+        <button
+          type="button"
+          onClick={(e) => onSelect(index, { shift: e.shiftKey, ctrl: e.ctrlKey })}
+          className="w-full text-left"
+        >
           <div className="flex items-center gap-2 text-[11px] tabular-nums text-slate-500">
             <span>{formatTime(segment.start)}</span>
             <span className="text-slate-700">·</span>

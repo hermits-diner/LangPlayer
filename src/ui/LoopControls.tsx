@@ -1,6 +1,6 @@
 import { useAppStore } from '../store/useAppStore'
 import { formatTime } from './format'
-import { stageLabel, useAutoSync } from './useAutoSync'
+import { useAutoSync } from './useAutoSync'
 
 const RATES = [0.6, 0.75, 0.9, 1, 1.25]
 const GAPS = [
@@ -117,7 +117,7 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
 
           {auto.running ? (
             <button type="button" onClick={auto.cancel} className="chip chip-active">
-              {stageLabel(auto.stage)} · 취소
+              맞추는 중 · 취소
             </button>
           ) : (
             <button

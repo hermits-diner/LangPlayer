@@ -3,64 +3,170 @@ import { useAppStore } from '../store/useAppStore'
 
 const RATE_STEPS = [0.6, 0.75, 0.9, 1, 1.25]
 
-interface Handlers {
+/** 음파창·섹션 조작 명령 모음 */
+export interface PlayerCommands {
   replay: () => void
   stop: () => void
   move: (delta: number) => void
+  gotoFirst: () => void
+  gotoLast: () => void
+  /** F6 — 일시정지, 멈춰 있으면 되감아 재생 */
+  togglePause: () => void
+  /** F11 — 선택 구간(없으면 현재부터) 연속 재생 */
+  playContinuous: () => void
+  mergeSections: () => void
+  splitSection: () => void
+  /** Ctrl+G — 뒤 문장을 하나씩 임시로 붙인다 */
+  groupOneMore: () => void
+  /** Ctrl+Shift+G — 전체를 한 덩어리로 */
+  groupAll: () => void
+  releaseGroup: () => void
+  zoomIn: () => void
+  zoomOut: () => void
+  zoomToSelection: () => void
+  zoomToAll: () => void
+  adjustVolume: (delta: number) => void
 }
 
 /**
  * 전역 단축키.
  *
- * 이 앱은 입력창에 포커스가 가 있는 시간이 대부분이라, 타이핑을 방해하지 않는
- * 것이 최우선이다. 그래서 글자 키 단축키는 입력 중일 때 완전히 비활성화하고,
- * 대신 Ctrl 조합으로 같은 동작을 열어둔다.
+ * 두 가지 원칙이 있다.
+ *
+ * 1. **타이핑을 방해하지 않는다.** 받아쓰기 입력창에 포커스가 가 있는 시간이
+ *    대부분이라, 글자 키 단축키는 입력 중 완전히 비활성화한다.
+ * 2. **F키와 수식키 조합은 어디서나 듣는다.** 받아쓰다가도 손을 떼지 않고
+ *    다시 듣고, 앞뒤 문장으로 옮길 수 있어야 하기 때문이다.
+ *
+ * F5·Ctrl+O·Ctrl+S·Ctrl+P는 브라우저 기본 동작을 가로챈다 (새로고침은 Ctrl+R).
  */
-export function useKeyboardShortcuts({ replay, stop, move }: Handlers) {
+export function useKeyboardShortcuts(commands: PlayerCommands) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null
-      const isTyping = Boolean(target?.closest('input, textarea, [contenteditable="true"]'))
-      const hasModifier = e.ctrlKey || e.altKey || e.metaKey
+      // 이벤트 target이 아니라 실제 포커스를 본다. target은 window나 document일
+      // 수 있어(합성 이벤트 등) closest가 없고, "지금 타이핑 중인가"의 답도 아니다.
+      const focused = document.activeElement
+      const isTyping =
+        focused instanceof Element &&
+        Boolean(focused.closest('input, textarea, [contenteditable="true"]'))
+      const store = useAppStore.getState()
 
-      // F5는 브라우저 새로고침을 가로채 구간 반복으로 쓴다 (새로고침은 Ctrl+R)
-      // 입력창 안에서도 동작해야 하므로 타이핑 검사보다 먼저 처리한다
-      if (e.key === 'F5' && !hasModifier) {
+      // ── 어디서나 듣는 키 ────────────────────────────────────────
+      switch (e.key) {
+        case 'F5':
+          e.preventDefault()
+          commands.replay()
+          return
+
+        case 'F6':
+          e.preventDefault()
+          commands.togglePause()
+          return
+
+        case 'F7':
+          e.preventDefault()
+          if (e.ctrlKey) commands.gotoFirst()
+          else commands.move(-1)
+          return
+
+        case 'F8':
+          e.preventDefault()
+          if (e.ctrlKey) commands.gotoLast()
+          else commands.move(1)
+          return
+
+        case 'F3':
+          e.preventDefault()
+          commands.mergeSections()
+          return
+
+        case 'F4':
+          e.preventDefault()
+          commands.splitSection()
+          return
+
+        case 'F11':
+          e.preventDefault()
+          commands.playContinuous()
+          return
+      }
+
+      if (e.ctrlKey && (e.key === 'g' || e.key === 'G')) {
         e.preventDefault()
-        replay()
+        if (e.shiftKey) commands.groupAll()
+        else commands.groupOneMore()
         return
       }
 
-      // 타이핑 중에는 수식키 조합만 받는다
-      if (isTyping && !hasModifier) return
+      // 임시 그룹은 Enter로 풀린다 (입력창의 Enter는 채점/다음이라 건드리지 않는다)
+      if (e.key === 'Enter' && !isTyping && store.tempGroup) {
+        e.preventDefault()
+        commands.releaseGroup()
+        return
+      }
 
-      const store = useAppStore.getState()
-
-      // 자막 싱크 미세 조정 — 입력 중에도 쓸 수 있어야 한다
       if (e.ctrlKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         e.preventDefault()
         store.nudgeOffset(e.key === 'ArrowLeft' ? -0.1 : 0.1)
         return
       }
 
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
         e.preventDefault()
-        move(e.key === 'ArrowDown' ? 1 : -1)
+        commands.adjustVolume(e.key === 'ArrowUp' ? 0.1 : -0.1)
         return
       }
 
-      if (hasModifier) return
+      // 숫자 패드 줌 — 노트북을 위해 일반 +/- 도 함께 받는다
+      switch (e.code) {
+        case 'NumpadAdd':
+          e.preventDefault()
+          commands.zoomIn()
+          return
+        case 'NumpadSubtract':
+          e.preventDefault()
+          commands.zoomOut()
+          return
+        case 'NumpadMultiply':
+          e.preventDefault()
+          commands.zoomToSelection()
+          return
+        case 'NumpadDivide':
+          e.preventDefault()
+          commands.zoomToAll()
+          return
+      }
+
+      // ── 여기부터는 타이핑 중이면 넘긴다 ─────────────────────────
+      if (isTyping || e.ctrlKey || e.altKey || e.metaKey) return
 
       switch (e.key) {
         case ' ':
           e.preventDefault()
-          if (store.loopStatus.running) stop()
-          else replay()
+          if (store.loopStatus.running) commands.stop()
+          else commands.replay()
+          break
+
+        case 'ArrowDown':
+        case 'ArrowUp':
+          e.preventDefault()
+          commands.move(e.key === 'ArrowDown' ? 1 : -1)
           break
 
         case 'Tab':
           e.preventDefault()
           store.toggleHideSubtitles()
+          break
+
+        case '+':
+        case '=':
+          e.preventDefault()
+          commands.zoomIn()
+          break
+
+        case '-':
+          e.preventDefault()
+          commands.zoomOut()
           break
 
         case '[':
@@ -83,5 +189,5 @@ export function useKeyboardShortcuts({ replay, stop, move }: Handlers) {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [move, replay, stop])
+  }, [commands])
 }

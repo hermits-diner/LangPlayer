@@ -10,7 +10,7 @@ interface Props {
  * 영상 원본 비율에 맡기면 와이드 화면에서 영상이 세로를 다 먹어버려
  * 정작 중요한 반복 컨트롤과 받아쓰기 창이 화면 밖으로 밀린다.
  */
-const PLAYER_HEIGHT = 'h-[42vh] min-h-56'
+const PLAYER_HEIGHT = 'h-[34vh] min-h-44'
 
 /**
  * 재생 영역.

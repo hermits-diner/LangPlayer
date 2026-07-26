@@ -1,68 +1,52 @@
 import { useCallback, useRef, useState } from 'react'
-import { autoSync, type SyncStage } from '../core/sync/autoSync'
-import { isLargeFile } from '../core/sync/audioSource'
+import { alignWithEnvelope } from '../core/sync/audioAnalysis'
 import { useAppStore } from '../store/useAppStore'
 
 /** 이 아래로는 자동 맞춤 결과를 믿지 않고 사용자에게 실패를 알린다 */
 const MIN_CONFIDENCE = 0.35
 
-export interface AutoSyncState {
-  running: boolean
-  stage: SyncStage | null
-}
-
-const STAGE_LABEL: Record<SyncStage, string> = {
-  decoding: '오디오 읽는 중',
-  analyzing: '음성 구간 분석 중',
-}
-
-export function stageLabel(stage: SyncStage | null): string {
-  return stage ? STAGE_LABEL[stage] : ''
-}
-
 /**
  * 자동 싱크 맞춤 실행부.
  *
- * 원본 파일은 스토어에 두지 않고 object URL을 다시 fetch해서 되찾는다.
- * 수백 MB짜리 File을 상태로 들고 다니지 않아도 되고, URL 수명과 정확히 같이 간다.
+ * 무거운 디코딩은 파형을 만들면서 이미 끝나 있으므로, 여기서는 그 포락선을
+ * 정렬에 재사용하기만 한다. 버튼을 누르는 순간 거의 즉시 결과가 나온다.
  */
 export function useAutoSync() {
-  const [state, setState] = useState<AutoSyncState>({ running: false, stage: null })
+  const [running, setRunning] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
   const cancel = useCallback(() => {
     abortRef.current?.abort()
     abortRef.current = null
-    setState({ running: false, stage: null })
+    setRunning(false)
   }, [])
 
   const run = useCallback(async () => {
     const store = useAppStore.getState()
-    const { media, cues, sync } = store
+    const { waveform, waveformState, cues, sync, media } = store
 
-    if (!media || cues.length === 0) return
-    if (media.kind === 'youtube') {
+    if (cues.length === 0) return
+
+    if (media?.kind === 'youtube') {
       store.setError('YouTube는 오디오에 접근할 수 없어 자동 맞춤을 쓸 수 없습니다. 탭 맞추기를 써 주세요.')
+      return
+    }
+    if (waveformState === 'loading') {
+      store.setNotice('오디오를 아직 읽는 중입니다. 잠시 후 다시 눌러 주세요.')
+      return
+    }
+    if (!waveform) {
+      store.setError('오디오를 읽지 못해 자동 맞춤을 쓸 수 없습니다. 탭 맞추기를 써 주세요.')
       return
     }
 
     const controller = new AbortController()
     abortRef.current = controller
-    setState({ running: true, stage: 'decoding' })
+    setRunning(true)
     store.setError(null)
 
     try {
-      const file = await fetch(media.src).then((r) => r.blob())
-
-      if (isLargeFile(file)) {
-        store.setNotice('파일이 커서 오디오를 읽는 데 시간이 걸립니다.')
-      }
-
-      const result = await autoSync(file, cues, {
-        signal: controller.signal,
-        onStage: (stage) => setState({ running: true, stage }),
-      })
-
+      const result = await alignWithEnvelope(waveform, cues, controller.signal)
       if (controller.signal.aborted) return
 
       if (result.confidence < MIN_CONFIDENCE) {
@@ -84,9 +68,9 @@ export function useAutoSync() {
       store.setError(err instanceof Error ? err.message : '자동 맞춤에 실패했습니다.')
     } finally {
       abortRef.current = null
-      setState({ running: false, stage: null })
+      setRunning(false)
     }
   }, [])
 
-  return { ...state, run, cancel }
+  return { running, run, cancel }
 }

@@ -58,8 +58,8 @@ export function DictationPane({ onReplay, onNext }: { onReplay: () => void; onNe
       return
     }
 
-    // F5는 브라우저 새로고침을 가로채 구간 반복으로 쓴다 (새로고침은 Ctrl+R)
-    if (e.key === 'F5' || e.key === 'Escape') {
+    // 전역 단축키가 F5를 이미 처리하므로 여기서는 Esc만 본다
+    if (e.key === 'Escape') {
       e.preventDefault()
       onReplay()
     }

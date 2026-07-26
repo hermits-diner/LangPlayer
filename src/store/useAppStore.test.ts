@@ -10,11 +10,11 @@ import { IDENTITY_SYNC, useAppStore } from './useAppStore'
  * 때마다 자막이 점점 밀려나는데, 눈으로는 알아채기 어렵다.
  */
 
-const segment = (id: string, start: number, end: number): Segment => ({
+const segment = (id: string, start: number, end: number, text = id): Segment => ({
   id,
   start,
   end,
-  text: id,
+  text,
   cueIds: [id],
 })
 
@@ -73,6 +73,59 @@ describe('applySync', () => {
   it('시각이 음수로 내려가지 않는다', () => {
     useAppStore.getState().applySync({ scale: 1, offsetSec: -999 })
     expect(times()[0][0]).toBe(0)
+  })
+})
+
+describe('splitActiveAt', () => {
+  it('찍은 지점에서 문장을 둘로 가른다', () => {
+    useAppStore.getState().splitActiveAt(11)
+
+    expect(useAppStore.getState().segments).toHaveLength(3)
+    expect(times().slice(0, 2)).toEqual([
+      [10, 11],
+      [11, 12],
+    ])
+  })
+
+  it('가장자리에 너무 붙으면 자르지 않는다 (부스러기 조각 방지)', () => {
+    const before = useAppStore.getState().segments
+
+    useAppStore.getState().splitActiveAt(10.3) // 시작점 코앞
+    expect(useAppStore.getState().segments).toBe(before)
+
+    useAppStore.getState().splitActiveAt(11.7) // 끝점 코앞
+    expect(useAppStore.getState().segments).toBe(before)
+  })
+
+  it('텍스트를 시간 비율에 맞춰 단어 경계로 나눈다', () => {
+    useAppStore.setState({ segments: [segment('a', 0, 10, 'one two three four five six')] })
+    useAppStore.getState().splitActiveAt(5)
+
+    const [left, right] = useAppStore.getState().segments
+    expect(left.text).toBe('one two three')
+    expect(right.text).toBe('four five six')
+  })
+
+  it('텍스트가 한쪽으로 몰리지 않는다 (양쪽 모두 최소 한 단어)', () => {
+    useAppStore.setState({ segments: [segment('a', 0, 10, 'alpha beta gamma')] })
+    useAppStore.getState().splitActiveAt(9.5)
+
+    const [left, right] = useAppStore.getState().segments
+    expect(left.text).not.toBe('')
+    expect(right.text).not.toBe('')
+  })
+
+  it('구간 밖은 무시한다', () => {
+    const before = useAppStore.getState().segments
+    useAppStore.getState().splitActiveAt(50)
+    expect(useAppStore.getState().segments).toBe(before)
+  })
+
+  it('나뉜 조각들이 서로 다른 기록 키를 갖는다', () => {
+    useAppStore.getState().splitActiveAt(11)
+    const [left, right] = useAppStore.getState().segments
+
+    expect(left.cueIds[0]).not.toBe(right.cueIds[0])
   })
 })
 

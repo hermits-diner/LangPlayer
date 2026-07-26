@@ -60,6 +60,13 @@ export interface LoopCallbacks {
  */
 export class LoopController {
   private settings: LoopSettings
+  /**
+   * 이번 실행에만 적용할 설정.
+   *
+   * 음파창에서 드래그한 구간이나 연속 재생은 "한 번만, 패딩 없이" 재생해야
+   * 하는데, 그렇다고 사용자가 맞춰 둔 반복 횟수를 건드릴 수는 없다.
+   */
+  private overrides: Partial<LoopSettings> | null = null
   private token = 0
   private status: LoopStatus = IDLE
 
@@ -83,27 +90,37 @@ export class LoopController {
     return this.settings
   }
 
+  /** 이번 실행에 실제로 적용되는 설정 */
+  private get effective(): LoopSettings {
+    return this.overrides ? { ...this.settings, ...this.overrides } : this.settings
+  }
+
   updateSettings(partial: Partial<LoopSettings>): void {
     this.settings = { ...this.settings, ...partial }
     if (partial.rate !== undefined) this.adapter.setRate(partial.rate)
 
     // 반복 횟수를 줄여 이미 채운 상태가 되면 즉시 끝낸다
-    if (this.status.running && this.status.repeat > this.settings.repeatCount) {
+    if (this.status.running && this.status.repeat > this.effective.repeatCount) {
       this.stop()
     } else if (this.status.running) {
-      this.emit({ ...this.status, total: this.settings.repeatCount })
+      this.emit({ ...this.status, total: this.effective.repeatCount })
     }
   }
 
-  /** 새 구간 반복 시작. 진행 중이던 루프는 즉시 취소된다 */
-  start(target: LoopTarget): void {
+  /**
+   * 새 구간 반복 시작. 진행 중이던 루프는 즉시 취소된다.
+   * `overrides`는 이번 실행에만 적용되고 사용자 설정을 바꾸지 않는다.
+   */
+  start(target: LoopTarget, overrides?: Partial<LoopSettings>): void {
     const token = this.cancelCurrent()
+    this.overrides = overrides ?? null
     void this.run(token, target)
   }
 
   /** 반복을 멈추고 재생도 정지 */
   stop(): void {
     this.cancelCurrent()
+    this.overrides = null
     this.adapter.pause()
     this.emit(IDLE)
   }
@@ -130,17 +147,17 @@ export class LoopController {
   }
 
   private async run(token: number, target: LoopTarget): Promise<void> {
-    const { padLeadMs, padTailMs } = this.settings
+    const { padLeadMs, padTailMs } = this.effective
     const from = Math.max(0, target.start - padLeadMs / 1000)
     const to = target.end + padTailMs / 1000
 
-    for (let repeat = 1; repeat <= this.settings.repeatCount; repeat++) {
+    for (let repeat = 1; repeat <= this.effective.repeatCount; repeat++) {
       if (this.isStale(token)) return
 
       this.emit({
         targetId: target.id,
         repeat,
-        total: this.settings.repeatCount,
+        total: this.effective.repeatCount,
         running: true,
         inGap: false,
       })
@@ -160,19 +177,20 @@ export class LoopController {
       await this.waitUntil(token, to)
       if (this.isStale(token)) return
 
-      const isLast = repeat >= this.settings.repeatCount
+      const isLast = repeat >= this.effective.repeatCount
       if (isLast) break
 
-      if (this.settings.gapMs > 0) {
+      if (this.effective.gapMs > 0) {
         this.adapter.pause()
         this.emit({ ...this.status, inGap: true })
-        await this.wait(token, this.settings.gapMs)
+        await this.wait(token, this.effective.gapMs)
         if (this.isStale(token)) return
       }
     }
 
     if (this.isStale(token)) return
 
+    this.overrides = null
     this.adapter.pause()
     this.emit(IDLE)
     this.callbacks.onFinished?.(target.id)

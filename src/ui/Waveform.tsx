@@ -124,13 +124,13 @@ export function Waveform({
       const isSelected = selectedSet.has(index)
       if (!isActive && !isSelected) return
 
-      ctx.fillStyle = isActive ? 'rgba(56,189,248,0.18)' : 'rgba(148,163,184,0.14)'
+      ctx.fillStyle = isActive ? 'rgba(210,167,71,0.16)' : 'rgba(158,150,138,0.10)'
       ctx.fillRect(left, 0, Math.max(1, right - left), size.height)
     })
 
-    // 2. 파형
+    // 2. 파형 — 배경으로 물러나야 한다. 여기서 가장 중요한 건 문장이지 파형이 아니다
     if (waveform && waveform.length > 0) {
-      ctx.fillStyle = 'rgba(148,197,224,0.85)'
+      ctx.fillStyle = 'rgba(158,150,138,0.5)'
 
       for (let x = 0; x < size.width; x++) {
         const from = view.startSec + (x / size.width) * span
@@ -153,7 +153,7 @@ export function Waveform({
     }
 
     // 3. 문장 경계선
-    ctx.strokeStyle = 'rgba(148,163,184,0.35)'
+    ctx.strokeStyle = 'rgba(158,150,138,0.22)'
     ctx.lineWidth = 1
     ctx.beginPath()
     for (const segment of segments) {
@@ -168,16 +168,16 @@ export function Waveform({
     if (drag) {
       const left = toX(Math.min(drag.from, drag.to))
       const right = toX(Math.max(drag.from, drag.to))
-      ctx.fillStyle = 'rgba(56,189,248,0.22)'
+      ctx.fillStyle = 'rgba(210,167,71,0.18)'
       ctx.fillRect(left, 0, right - left, size.height)
-      ctx.strokeStyle = 'rgba(56,189,248,0.8)'
+      ctx.strokeStyle = 'rgba(210,167,71,0.75)'
       ctx.strokeRect(left + 0.5, 0.5, right - left - 1, size.height - 1)
     }
 
-    // 5. 재생 위치
+    // 5. 재생 위치 — 유일하게 밝은 요소. 눈이 여기로 오게 한다
     const playX = toX(currentTime)
     if (playX >= 0 && playX <= size.width) {
-      ctx.strokeStyle = '#f472b6'
+      ctx.strokeStyle = '#f3efe8'
       ctx.lineWidth = 2
       ctx.beginPath()
       ctx.moveTo(playX, 0)

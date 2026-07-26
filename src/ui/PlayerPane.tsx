@@ -37,17 +37,22 @@ export function PlayerPane({ mediaRef, youtubeRef }: Props) {
   if (media.kind === 'audio') {
     return (
       <div
-        className={`flex w-full flex-col items-center justify-center gap-6 bg-gradient-to-b from-ink-800 to-ink-950 px-8 ${PLAYER_HEIGHT}`}
+        className={`relative flex w-full flex-col items-center justify-center gap-7 overflow-hidden px-8 ${PLAYER_HEIGHT}`}
       >
-        <div className="text-center">
-          <div className="text-5xl">🎧</div>
-          <p className="mt-3 max-w-md truncate text-sm text-slate-400">{media.name}</p>
-        </div>
+        {/* 오디오는 볼 것이 없다. 빈 화면을 그냥 두면 죽어 보이므로 은은한 빛을 깐다 */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(210,167,71,0.07),transparent_65%)]"
+        />
+
+        <p className="relative max-w-md truncate text-center text-sm tracking-wide text-slate-500">
+          {media.name}
+        </p>
         <audio
           ref={mediaRef as React.RefObject<HTMLAudioElement>}
           src={media.src}
           controls
-          className="w-full max-w-lg"
+          className="relative w-full max-w-lg"
           onError={() => setError('오디오 파일을 재생할 수 없습니다. 형식을 확인해 주세요.')}
         />
       </div>

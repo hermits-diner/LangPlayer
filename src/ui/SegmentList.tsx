@@ -93,15 +93,15 @@ function SegmentRow({
   onSplit,
 }: RowProps) {
   const background = isActive
-    ? 'border-sky-400 bg-sky-400/10'
+    ? 'border-sky-400 bg-sky-400/[0.09]'
     : isSelected
-      ? 'border-slate-400 bg-white/[0.07]'
-      : 'border-transparent hover:border-white/20 hover:bg-white/5'
+      ? 'border-slate-500 bg-white/[0.05]'
+      : 'border-transparent hover:border-white/15 hover:bg-white/[0.035]'
 
   return (
     <li data-index={index}>
       <div
-        className={`group border-l-2 px-3 py-2 transition ${background}`}
+        className={`group border-l-2 px-3 py-2.5 transition duration-150 ${background}`}
         // 오른쪽 클릭은 개별 선택 토글 — 브라우저 기본 메뉴는 막는다
         onContextMenu={(e) => {
           e.preventDefault()
@@ -113,19 +113,23 @@ function SegmentRow({
           onClick={(e) => onSelect(index, { shift: e.shiftKey, ctrl: e.ctrlKey })}
           className="w-full text-left"
         >
-          <div className="flex items-center gap-2 text-[11px] tabular-nums text-slate-500">
-            <span>{formatTime(segment.start)}</span>
+          <div className="flex items-center gap-1.5 text-[10.5px] tabular-nums tracking-wide text-slate-600">
+            <span className={isActive ? 'text-slate-400' : undefined}>{formatTime(segment.start)}</span>
             <span className="text-slate-700">·</span>
             <span>{(segment.end - segment.start).toFixed(1)}초</span>
-            {isLooping && <span className="text-sky-400">▶ 반복 중</span>}
+            {isLooping && <span className="ml-1 text-sky-400">▶ 반복 중</span>}
             {accuracy !== undefined && (
-              <span className={`ml-auto font-medium ${accuracy >= 0.9 ? 'text-emerald-400' : accuracy >= 0.6 ? 'text-amber-400' : 'text-rose-400'}`}>
+              <span
+                className={`ml-auto font-medium ${accuracy >= 0.9 ? 'text-emerald-400' : accuracy >= 0.6 ? 'text-amber-400' : 'text-rose-400'}`}
+              >
                 {Math.round(accuracy * 100)}%
               </span>
             )}
           </div>
 
-          <p className={`mt-0.5 text-sm leading-snug ${isActive ? 'text-slate-100' : 'text-slate-400'}`}>
+          <p
+            className={`mt-1 text-[13.5px] leading-relaxed ${isActive ? 'text-slate-100' : 'text-slate-400'}`}
+          >
             {hidden && accuracy === undefined ? (
               <span className="tracking-wider text-slate-600">{maskText(segment.text)}</span>
             ) : (

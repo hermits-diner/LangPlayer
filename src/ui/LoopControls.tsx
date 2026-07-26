@@ -41,19 +41,28 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
   const isAdjusted = sync.offsetSec !== 0 || sync.scale !== 1
 
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 bg-black/20 px-4 py-2.5 text-sm">
-      <div className="flex items-center gap-2 tabular-nums">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-white/10 bg-black/25 px-4 py-2 text-sm">
+      {/* 재생 상태 — 지금 무슨 일이 벌어지는지가 가장 먼저 눈에 들어와야 한다 */}
+      <div className="flex min-w-[7.5rem] items-center gap-2">
         {status.running ? (
           <button type="button" onClick={onStop} className="chip chip-active">
             ■ 정지
           </button>
         ) : (
-          <span className="text-slate-600">대기</span>
+          <span className="rounded-md px-2 py-1 text-xs text-slate-600">대기</span>
         )}
-        <span className={status.inGap ? 'text-amber-300' : 'text-slate-300'}>
-          {status.running ? (status.inGap ? '따라 말하기' : `${status.repeat} / ${isInfinite ? '∞' : status.total}`) : '—'}
+        <span
+          className={`text-xs tabular-nums ${status.inGap ? 'text-amber-300' : 'text-slate-400'}`}
+        >
+          {status.running
+            ? status.inGap
+              ? '따라 말하기'
+              : `${status.repeat} / ${isInfinite ? '∞' : status.total}`
+            : ''}
         </span>
       </div>
+
+      <span className="divider" />
 
       <Field label="반복">
         <div className="flex items-center gap-1">
@@ -100,6 +109,8 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
           ))}
         </select>
       </Field>
+
+      <span className="divider" />
 
       <Field label="싱크">
         <div className="flex items-center gap-1">
@@ -160,7 +171,8 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
         </div>
       </Field>
 
-      <div className="ml-auto flex items-center gap-2">
+      {/* 학습 방식 스위치 — 자주 바꾸지 않으므로 오른쪽 끝으로 밀어 둔다 */}
+      <div className="ml-auto flex items-center gap-1.5">
         <button
           type="button"
           onClick={toggleGrading}
@@ -187,8 +199,8 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-slate-500">{label}</span>
+    <div className="flex items-center gap-1.5">
+      <span className="field-label">{label}</span>
       {children}
     </div>
   )

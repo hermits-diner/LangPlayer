@@ -30,6 +30,9 @@ const PAUSE_REWIND_SEC = 3
 /** 음파창 최소 확대 폭 */
 const MIN_VIEW_SEC = 1
 
+/** 알림이 스스로 물러나는 시간 */
+const NOTICE_DISMISS_MS = 6000
+
 /** 드래그 구간·연속 재생은 반복 없이 한 번, 패딩 없이 그대로 */
 const PLAY_ONCE = { repeatCount: 1, padLeadMs: 0, padTailMs: 0, gapMs: 0 }
 
@@ -531,6 +534,13 @@ export default function App() {
     useTextStore.getState().reset()
   }, [media, subtitle])
 
+  // 알림은 알렸으면 물러나야 한다. 오류는 사용자가 조치할 때까지 남긴다
+  useEffect(() => {
+    if (!notice) return
+    const timer = setTimeout(() => useAppStore.getState().setNotice(null), NOTICE_DISMISS_MS)
+    return () => clearTimeout(timer)
+  }, [notice])
+
   // ─── 전역 드래그앤드롭 ──────────────────────────────────────────
   useEffect(() => {
     const onDragOver = (e: DragEvent) => {
@@ -569,8 +579,9 @@ export default function App() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-3 border-b border-white/10 px-4 py-2">
-        <span className="text-sm font-semibold tracking-tight text-slate-200">LangPlayer</span>
+      <header className="flex items-center gap-3 border-b border-white/10 bg-black/20 px-4 py-2.5">
+        <span className="text-[13px] font-semibold tracking-tight text-slate-200">LangPlayer</span>
+        <span className="h-3.5 w-px bg-white/[0.08]" />
         <span className="min-w-0 truncate text-xs text-slate-500">{media.name}</span>
         {subtitle && (
           <span className="shrink-0 text-xs text-slate-600">
@@ -599,12 +610,12 @@ export default function App() {
       </header>
 
       {(error || notice) && (
-        <div
-          className={`px-4 py-1.5 text-xs ${
-            error ? 'bg-rose-500/10 text-rose-300' : 'bg-sky-500/10 text-sky-300'
-          }`}
-        >
-          {error ?? notice}
+        <div className="flex items-center gap-2 border-b border-white/[0.06] px-4 py-1.5 text-xs">
+          <span
+            aria-hidden
+            className={`h-1 w-1 shrink-0 rounded-full ${error ? 'bg-rose-400' : 'bg-sky-400'}`}
+          />
+          <span className={error ? 'text-rose-300' : 'text-slate-400'}>{error ?? notice}</span>
         </div>
       )}
 
@@ -651,9 +662,20 @@ export default function App() {
         </section>
 
         <aside className="flex w-96 shrink-0 flex-col border-l border-white/10">
-          <div className="border-b border-white/10 px-3 py-2 text-xs text-slate-500">
-            문장 {segments.length > 0 ? `${activeIndex + 1} / ${segments.length}` : '—'}
-            <span className="ml-2 text-slate-700">F6/F7 이동 · F5 반복 · F11 연속</span>
+          <div className="flex items-baseline gap-2 border-b border-white/10 bg-black/20 px-3 py-2.5">
+            <span className="text-xs tabular-nums text-slate-400">
+              {segments.length > 0 ? (
+                <>
+                  <span className="text-slate-100">{activeIndex + 1}</span>
+                  <span className="text-slate-600"> / {segments.length}</span>
+                </>
+              ) : (
+                '—'
+              )}
+            </span>
+            <span className="text-[10.5px] tracking-wide text-slate-700">
+              F6·F7 이동 · F5 반복 · F11 연속
+            </span>
           </div>
           <div className="min-h-0 flex-1">
             {segments.length === 0 ? (

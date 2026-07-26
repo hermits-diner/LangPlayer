@@ -1,11 +1,49 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css');
 @import 'tailwindcss';
 
+/**
+ * 이 앱은 사람이 오래 앉아 듣고 쓰는 도구다. 그래서 흔한 차가운 슬레이트 대신
+ * 종이에 가까운 따뜻한 어둠을 쓰고, 강조는 놋쇠빛 하나로만 한다.
+ *
+ * Tailwind 기본 팔레트(slate·sky)를 여기서 덮어써서, 컴포넌트를 건드리지 않고도
+ * 전체 톤이 한 번에 바뀌게 했다.
+ */
 @theme {
-  --color-ink-950: #0b0e14;
-  --color-ink-900: #11151f;
-  --color-ink-800: #1a2030;
-  --color-ink-700: #262e42;
-  --color-ink-600: #3a4459;
+  /* ── 표면: 따뜻한 어둠 ─────────────────────────────── */
+  --color-ink-950: #0c0b0a;
+  --color-ink-900: #141210;
+  --color-ink-800: #1c1916;
+  --color-ink-700: #262220;
+  --color-ink-600: #35302b;
+
+  /* ── 중립: slate를 따뜻하게 덮어쓴다 ────────────────── */
+  --color-slate-100: #f3efe8;
+  --color-slate-200: #e0dad0;
+  --color-slate-300: #c5bdb1;
+  --color-slate-400: #9e968a;
+  --color-slate-500: #7e776c;
+  --color-slate-600: #605a51;
+  --color-slate-700: #47423b;
+  --color-slate-800: #2f2b27;
+  --color-slate-900: #1d1a17;
+
+  /* ── 강조: 놋쇠. sky를 덮어써 앱 전체가 이 색 하나를 쓴다 ── */
+  --color-sky-200: #f2ddaa;
+  --color-sky-300: #e5c680;
+  --color-sky-400: #d2a747;
+  --color-sky-500: #b98e32;
+
+  /* ── 채점: 형광기를 걷어내 놋쇠와 어울리게 ─────────────── */
+  --color-emerald-300: #9dbf8c;
+  --color-emerald-400: #86ab74;
+  --color-emerald-500: #6f9160;
+  --color-amber-300: #e0b96f;
+  --color-amber-400: #d2a747;
+  --color-amber-500: #b98e32;
+  --color-rose-200: #e5b3aa;
+  --color-rose-300: #d59287;
+  --color-rose-400: #c4776b;
+  --color-rose-500: #a95f54;
 }
 
 html,
@@ -17,39 +55,99 @@ body,
 body {
   margin: 0;
   background: var(--color-ink-950);
-  color: #e6e9f0;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  color: var(--color-slate-200);
+  font-family:
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* 도구 UI는 글자가 작다. 자간을 살짝 조여야 또렷하게 읽힌다 */
+  letter-spacing: -0.01em;
+  /**
+   * 한국어는 어절 중간에서 끊으면 읽기가 무너진다.
+   * 기본값(break-all에 가까운 동작)을 막고 어절 단위로 넘긴다.
+   */
+  word-break: keep-all;
+  overflow-wrap: break-word;
   overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* 받아쓰기 입력창: 등폭 + 넉넉한 행간 */
+/**
+ * 완전히 평평한 어둠은 화면이 죽어 보인다. 아주 옅은 노이즈를 깔아
+ * 종이 결 같은 깊이를 준다. 클릭은 통과시킨다.
+ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/**
+ * 받아쓰기 입력창.
+ *
+ * 고정폭 폰트를 쓰면 한글이 대체 글꼴로 떨어져 보기 흉하다. 여기는 정렬이
+ * 아니라 **쓰는** 자리이므로 본문 글꼴을 그대로 쓰되, 행간을 넉넉히 벌려
+ * 한 줄 한 문장이 눈에 들어오게 한다.
+ */
 .dictation-input {
-  font-family: 'JetBrains Mono', 'D2Coding', Consolas, monospace;
-  line-height: 1.9;
+  line-height: 1.85;
+  letter-spacing: -0.005em;
 }
 
 @layer components {
   .chip {
-    @apply rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300 transition;
-    @apply hover:border-white/25 hover:bg-white/10 hover:text-slate-100;
+    @apply rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-xs text-slate-300;
+    @apply transition duration-150 ease-out;
+    @apply hover:border-white/20 hover:bg-white/[0.08] hover:text-slate-100;
+    /* 눌리는 느낌 — 물리적인 반응이 있어야 도구처럼 느껴진다 */
+    @apply active:scale-[0.97] active:bg-white/[0.12];
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60;
   }
 
   .chip-active {
-    @apply border-sky-400/60 bg-sky-400/15 text-sky-200;
+    @apply border-sky-400/50 bg-sky-400/[0.14] text-sky-200;
+    @apply hover:border-sky-400/70 hover:bg-sky-400/20 hover:text-sky-200;
   }
 
   .select {
-    @apply rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 outline-none;
-    @apply focus:border-sky-400/60;
+    @apply rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-xs text-slate-200;
+    @apply transition duration-150 outline-none hover:border-white/20;
+    @apply focus-visible:ring-2 focus-visible:ring-sky-400/60;
   }
 
   .kbd {
-    @apply rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-slate-400;
+    @apply rounded border border-white/[0.14] bg-white/[0.06] px-1.5 py-0.5;
+    @apply font-mono text-[10px] tracking-tight text-slate-400;
   }
+
+  /* 컨트롤 바에서 기능 묶음을 가르는 실선 */
+  .divider {
+    @apply h-5 w-px shrink-0 bg-white/[0.08];
+  }
+
+  /* 묶음 앞에 붙는 작은 이름표 */
+  .field-label {
+    @apply shrink-0 text-[11px] tracking-wide text-slate-600;
+  }
+}
+
+/* 키보드 이동이 주된 조작이므로 포커스가 반드시 보여야 한다 */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-sky-400) 55%, transparent);
+  border-radius: 0.375rem;
 }
 
 /* 네이티브 컨트롤을 어두운 테마에 맞춘다 */
 video,
 audio {
   color-scheme: dark;
+}
+
+/* 사이드바 스크롤바를 배경에 녹인다 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-600) transparent;
 }

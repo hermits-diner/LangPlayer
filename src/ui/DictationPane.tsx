@@ -94,7 +94,7 @@ export function DictationPane({ onReplay, onNext }: { onReplay: () => void; onNe
         autoCapitalize="off"
         autoCorrect="off"
         placeholder="들은 대로 받아쓰세요"
-        className="dictation-input min-h-24 w-full resize-none rounded-lg border border-white/10 bg-black/30 p-3 text-lg text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-sky-400/60 focus:ring-1 focus:ring-sky-400/30"
+        className="dictation-input min-h-28 w-full resize-none rounded-xl border border-white/[0.09] bg-black/40 px-4 py-3.5 text-[1.0625rem] text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] outline-none transition duration-200 placeholder:text-slate-700 focus:border-sky-400/45 focus:bg-black/50 focus:shadow-[0_0_0_3px_rgba(210,167,71,0.10),inset_0_1px_0_rgba(255,255,255,0.04)]"
       />
 
       {result ? (
@@ -108,11 +108,11 @@ export function DictationPane({ onReplay, onNext }: { onReplay: () => void; onNe
           )}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-white/10 p-4 text-sm">
+        <div className="rounded-xl border border-dashed border-white/[0.09] px-4 py-3.5">
           {hideSubtitles ? (
-            <span className="text-slate-600">자막이 가려져 있습니다 · Tab으로 확인</span>
+            <span className="text-sm text-slate-700">자막이 가려져 있습니다 · Tab으로 확인</span>
           ) : (
-            <span className="text-slate-300">{segment.text}</span>
+            <span className="text-[1.0625rem] leading-relaxed text-slate-300">{segment.text}</span>
           )}
         </div>
       )}

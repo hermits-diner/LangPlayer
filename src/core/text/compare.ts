@@ -1,7 +1,7 @@
 import { scoreDictation, type DictationResult } from '../dictation/score'
 
 /**
- * 비교 모드 (F9) — 드랩·약형드랩을 패치와 맞춰 본다.
+ * 정답 대조 (F9) — 받아쓰기 전문을 자막 원문과 맞춰 본다.
  *
  * 문장 하나가 한 줄이므로 줄 번호로 짝을 짓는다. 채점은 문장별 받아쓰기와
  * 똑같은 엔진을 쓴다. 어디서 틀렸는지 보여주는 방식이 두 곳에서 달라야 할
@@ -25,8 +25,11 @@ export interface DocumentComparison {
 }
 
 /**
- * 약형드랩의 빈칸(`___`)은 아직 안 채운 자리이지 틀린 답이 아니다.
- * 그대로 채점하면 정확도가 엉뚱하게 낮아지므로 지운 뒤 비교한다.
+ * 밑줄(`___`)은 못 알아들어 비워 둔 자리로 본다.
+ *
+ * 받아쓰다 안 들리는 단어를 밑줄로 남기는 건 흔한 습관이다. 그걸 오답으로
+ * 세면 "틀리게 들었다"와 "못 들었다"가 뭉개진다. 지우고 비교하면 누락으로만
+ * 잡힌다.
  */
 function stripBlanks(text: string): string {
   return text.replace(/_+/g, ' ').replace(/\s+/g, ' ').trim()

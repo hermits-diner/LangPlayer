@@ -144,15 +144,6 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
         return
       }
 
-      // Alt 조합 — 약형드랩 생성과 클립보드
-      if (e.altKey && (e.key === 'd' || e.key === 'D')) {
-        e.preventDefault()
-        if (!useTextStore.getState().generateGapped()) {
-          store.setError('먼저 패치를 채워 주세요 (텍스트창 아래창, F2).')
-        }
-        return
-      }
-
 
       if (e.ctrlKey && (e.key === 'g' || e.key === 'G')) {
         e.preventDefault()

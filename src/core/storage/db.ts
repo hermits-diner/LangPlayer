@@ -63,7 +63,8 @@ class LangPlayerDatabase extends Dexie {
       sessions: 'key, mediaKey, updatedAt',
       settings: 'id',
     })
-    // 작업 폴더 핸들 보관용 (File System Access API)
+    // 작업 폴더 핸들을 보관하던 테이블. 지금은 쓰지 않지만, 선언을 지우면
+    // 이미 버전 2로 올라간 브라우저에서 downgrade로 취급되므로 남겨 둔다.
     this.version(2).stores({
       handles: 'id',
     })

@@ -3,13 +3,11 @@ import { LoopController } from './core/loop/LoopController'
 import { HtmlMediaAdapter } from './core/player/HtmlMediaAdapter'
 import type { PlayerAdapter } from './core/player/PlayerAdapter'
 import { YouTubeAdapter } from './core/player/YouTubeAdapter'
-import { TEXT_KINDS } from './core/text/types'
 import { canSplitAt, useAppStore } from './store/useAppStore'
 import { useTextStore } from './store/useTextStore'
 import { DictationPane } from './ui/DictationPane'
 import { TextWindow } from './ui/TextWindow'
 import { TranscriptPaste } from './ui/TranscriptPaste'
-import { useWorkspace } from './ui/useWorkspace'
 import { DropZone } from './ui/DropZone'
 import { LoopControls } from './ui/LoopControls'
 import { PlayerPane } from './ui/PlayerPane'
@@ -62,7 +60,6 @@ export default function App() {
   const [view, setView] = useState<WaveformView>({ startSec: 0, endSec: 60 })
 
   const { loadFiles } = useLoadFiles()
-  const workspace = useWorkspace()
   useWaveform()
   usePersistence()
 
@@ -293,7 +290,28 @@ export default function App() {
 
   const openFiles = useCallback(() => fileInputRef.current?.click(), [])
 
-  const saveDraft = useCallback(() => void workspace.save('draft'), [workspace])
+  /** Ctrl+S — 받아쓰기 전문을 텍스트 파일로 */
+  const saveDraft = useCallback(() => {
+    const store = useAppStore.getState()
+    const transcript = useTextStore.getState().getTranscript()
+
+    if (!transcript.trim()) {
+      store.setNotice('저장할 내용이 없습니다.')
+      return
+    }
+
+    const name = store.media?.name ?? 'transcript'
+    const base = name.includes('.') ? name.slice(0, name.lastIndexOf('.')) : name
+    const url = URL.createObjectURL(new Blob([transcript], { type: 'text/plain;charset=utf-8' }))
+
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${base}.txt`
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 10_000)
+
+    store.setNotice(`${link.download}으로 내려받았습니다.`)
+  }, [])
 
   const clipboardIn = useCallback(async () => {
     const store = useAppStore.getState()
@@ -304,10 +322,9 @@ export default function App() {
         return
       }
 
-      const textStore = useTextStore.getState()
-      textStore.setOpen(true)
-      textStore.setText(textStore.upperKind, text)
-      store.setNotice(`클립보드에서 ${TEXT_KINDS[textStore.upperKind].label}을 가져왔습니다.`)
+      useTextStore.getState().setOpen(true)
+      useTextStore.getState().setTranscript(text)
+      store.setNotice('클립보드에서 받아쓰기를 가져왔습니다.')
     } catch {
       store.setError('클립보드를 읽지 못했습니다. 브라우저가 권한을 막았을 수 있습니다.')
     }
@@ -315,17 +332,16 @@ export default function App() {
 
   const clipboardOut = useCallback(async () => {
     const store = useAppStore.getState()
-    const textStore = useTextStore.getState()
-    const content = textStore.getText(textStore.upperKind)
+    const transcript = useTextStore.getState().getTranscript()
 
-    if (!content.trim()) {
+    if (!transcript.trim()) {
       store.setNotice('내보낼 내용이 없습니다.')
       return
     }
 
     try {
-      await navigator.clipboard.writeText(content)
-      store.setNotice(`${TEXT_KINDS[textStore.upperKind].label}을 클립보드로 내보냈습니다.`)
+      await navigator.clipboard.writeText(transcript)
+      store.setNotice('받아쓰기를 클립보드로 내보냈습니다.')
     } catch {
       store.setError('클립보드에 쓰지 못했습니다. 브라우저가 권한을 막았을 수 있습니다.')
     }
@@ -510,12 +526,9 @@ export default function App() {
     if (totalSec > 0) setView({ startSec: 0, endSec: totalSec })
   }, [totalSec])
 
-  // 자료가 바뀌면 텍스트창 문서도 갈아 끼운다.
-  // 앞 영상의 패치·약형드랩이 따라오면 엉뚱한 정답으로 채점하게 된다.
+  // 자료가 바뀌면 대조 모드는 꺼 둔다 — 앞 자료의 결과를 그대로 보여주지 않도록
   useEffect(() => {
-    const text = useTextStore.getState()
-    text.reset()
-    if (text.open) text.seedPatchFromSubtitle()
+    useTextStore.getState().reset()
   }, [media, subtitle])
 
   // ─── 전역 드래그앤드롭 ──────────────────────────────────────────

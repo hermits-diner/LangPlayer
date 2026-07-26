@@ -210,6 +210,19 @@ export default function App() {
     [totalSec],
   )
 
+  /**
+   * PageUp/PageDown — 자막 목록을 한 화면씩 넘긴다.
+   *
+   * 앞뒤 자막을 훑어보려고 매번 휠을 굴리는 게 번거롭다는 요구다. 그래서
+   * **현재 문장은 건드리지 않고 목록만** 움직인다 — 공부하던 자리를 잃지 않고
+   * 둘러볼 수 있어야 한다. 한 화면을 통째로 넘기면 맥락이 끊기므로 조금 겹쳐 둔다.
+   */
+  const scrollSegments = useCallback((direction: 1 | -1) => {
+    const list = document.querySelector<HTMLElement>('[data-segment-list]')
+    if (!list) return
+    list.scrollBy({ top: direction * list.clientHeight * 0.85, behavior: 'smooth' })
+  }, [])
+
   const zoomToAll = useCallback(() => {
     setView({ startSec: 0, endSec: Math.max(MIN_VIEW_SEC, totalSec) })
   }, [totalSec])
@@ -340,6 +353,7 @@ export default function App() {
       zoomIn: () => zoomBy(0.6),
       zoomOut: () => zoomBy(1 / 0.6),
       zoomToAll,
+      scrollSegments,
       adjustVolume,
       openFiles,
       saveDraft,
@@ -359,6 +373,7 @@ export default function App() {
       splitSection,
       zoomBy,
       zoomToAll,
+      scrollSegments,
       adjustVolume,
       openFiles,
       saveDraft,

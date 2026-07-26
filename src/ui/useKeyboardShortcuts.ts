@@ -20,6 +20,8 @@ export interface PlayerCommands {
   zoomIn: () => void
   zoomOut: () => void
   zoomToAll: () => void
+  /** PageUp/PageDown — 자막 목록을 한 화면씩 넘긴다 (현재 문장은 그대로) */
+  scrollSegments: (direction: 1 | -1) => void
   adjustVolume: (delta: number) => void
   /** Ctrl+O — 미디어·자막 파일 열기 */
   openFiles: () => void
@@ -109,6 +111,17 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
         case 'F11':
           e.preventDefault()
           commands.playContinuous()
+          return
+
+        // 앞뒤 자막을 훑어볼 때 — 입력 중에도 손을 떼지 않고 넘길 수 있어야 한다
+        case 'PageDown':
+          e.preventDefault()
+          commands.scrollSegments(1)
+          return
+
+        case 'PageUp':
+          e.preventDefault()
+          commands.scrollSegments(-1)
           return
 
         // ── 텍스트창 ──────────────────────────────────────────────

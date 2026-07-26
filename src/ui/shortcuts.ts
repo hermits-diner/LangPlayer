@@ -21,6 +21,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ['Ctrl+F6', 'Ctrl+F7'], label: '첫 / 끝 문장' },
       { keys: ['F8'], label: '일시정지 — 다시 누르면 3초 되감아 재생' },
       { keys: ['F11'], label: '연속 재생 (선택 구간, 없으면 현재부터 끝까지)' },
+      { keys: ['PgUp', 'PgDn'], label: '자막 목록을 한 화면씩 넘기기 (현재 문장은 그대로)' },
       { keys: ['1'], label: '반복 횟수 (1~9)' },
       { keys: ['[', ']'], label: '배속' },
       { keys: ['Ctrl+↑', 'Ctrl+↓'], label: '음량' },

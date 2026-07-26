@@ -47,7 +47,12 @@ export function SegmentList({ onSelect, onMerge, onSplit }: SegmentListProps) {
   }
 
   return (
-    <ul ref={listRef} className="h-full overflow-y-auto py-1">
+    <ul
+      ref={listRef}
+      // PageUp/PageDown이 이 목록을 찾아 넘긴다 (App의 scrollSegments)
+      data-segment-list
+      className="h-full overflow-y-auto py-1"
+    >
       {segments.map((segment, index) => (
         <SegmentRow
           key={segment.id}

@@ -3,6 +3,7 @@ import { DEFAULT_LOOP_SETTINGS } from '../loop/LoopController'
 import { formatBytes } from './quota'
 import {
   deserializeLoopSettings,
+  fingerprintCues,
   mediaKeyForFile,
   mediaKeyForYouTube,
   serializeLoopSettings,
@@ -74,6 +75,35 @@ describe('키 생성', () => {
 
   it('자막이 없으면 미디어 키를 그대로 쓴다', () => {
     expect(sessionKeyOf('yt:abc', null)).toBe('yt:abc')
+  })
+})
+
+describe('fingerprintCues', () => {
+  const cues = [
+    { start: 1, end: 3, text: 'Hello there' },
+    { start: 4, end: 6, text: 'General Kenobi' },
+  ]
+
+  it('같은 내용이면 같은 지문', () => {
+    expect(fingerprintCues(cues)).toBe(fingerprintCues(cues.map((c) => ({ ...c }))))
+  })
+
+  it('텍스트가 다르면 지문이 달라진다', () => {
+    const changed = [cues[0], { ...cues[1], text: 'Different line' }]
+    expect(fingerprintCues(changed)).not.toBe(fingerprintCues(cues))
+  })
+
+  it('타이밍이 다르면 지문이 달라진다', () => {
+    const shifted = cues.map((c) => ({ ...c, start: c.start + 2, end: c.end + 2 }))
+    expect(fingerprintCues(shifted)).not.toBe(fingerprintCues(cues))
+  })
+
+  it('큐 개수가 다르면 지문이 달라진다', () => {
+    expect(fingerprintCues(cues.slice(0, 1))).not.toBe(fingerprintCues(cues))
+  })
+
+  it('빈 자막도 지문을 낸다', () => {
+    expect(fingerprintCues([])).toMatch(/^0-/)
   })
 })
 

@@ -11,6 +11,7 @@ import {
 import { requestPersistence } from '../core/storage/quota'
 import {
   deserializeLoopSettings,
+  fingerprintCues,
   serializeLoopSettings,
   sessionKeyOf,
 } from '../core/storage/serialize'
@@ -85,7 +86,7 @@ export function usePersistence() {
     void loadSession(sessionKey).then((row) => {
       if (cancelled) return
 
-      if (row) {
+      if (row && matchesLoadedSubtitle(row)) {
         const results = rescore(row)
 
         useAppStore.getState().restoreSession({
@@ -142,6 +143,7 @@ export function usePersistence() {
         offsetSec: sync.offsetSec,
         scale: sync.scale,
         cues,
+        cuesFingerprint: fingerprintCues(cues),
         segments,
         inputs,
         graded: Object.keys(results),
@@ -158,6 +160,23 @@ export function usePersistence() {
 
     return () => clearTimeout(timer)
   }, [sessionKey, media, subtitle, cues, segments, activeIndex, sync, inputs, results])
+}
+
+/**
+ * 저장된 기록이 지금 화면에 올라온 자막과 같은 것인지 확인한다.
+ *
+ * 세션 키는 파일 이름으로만 만들어지므로, 같은 이름의 다른 자막을 올리면
+ * 키가 겹친다. 내용 지문까지 맞을 때만 복원해야 방금 올린 자막이 옛 기록에
+ * 덮이지 않는다.
+ */
+function matchesLoadedSubtitle(row: SessionRow): boolean {
+  const loaded = useAppStore.getState().cues
+  if (loaded.length === 0) return true // 자막 없이 미디어만 연 경우 — 저장본을 그대로 쓴다
+
+  // 지문이 생기기 전 기록은 큐 개수로만 대조한다 (없는 것보다는 낫다)
+  if (!row.cuesFingerprint) return row.cues.length === loaded.length
+
+  return row.cuesFingerprint === fingerprintCues(loaded)
 }
 
 /**

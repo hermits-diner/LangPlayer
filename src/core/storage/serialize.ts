@@ -75,3 +75,30 @@ export function mediaKeyForYouTube(videoId: string): string {
 export function sessionKeyOf(mediaKey: string, subtitleName: string | null): string {
   return subtitleName ? `${mediaKey}::${subtitleName}` : mediaKey
 }
+
+/**
+ * 자막 내용의 지문.
+ *
+ * 세션 키는 파일 **이름**으로만 만들어진다. 그래서 같은 이름으로 내용이 다른
+ * 자막을 올리면 옛 기록이 새 자막을 덮어써 버린다 — 화면에는 방금 올린 자막이
+ * 아니라 예전 것이 뜬다. 내용까지 대조해서 정말 같은 자막일 때만 복원한다.
+ */
+export function fingerprintCues(cues: readonly { start: number; end: number; text: string }[]): string {
+  // FNV-1a 32비트
+  let hash = 0x811c9dc5
+
+  const mix = (value: string) => {
+    for (let i = 0; i < value.length; i++) {
+      hash ^= value.charCodeAt(i)
+      hash = Math.imul(hash, 0x01000193)
+    }
+  }
+
+  for (const cue of cues) {
+    mix(cue.start.toFixed(2))
+    mix(cue.end.toFixed(2))
+    mix(cue.text)
+  }
+
+  return `${cues.length}-${(hash >>> 0).toString(36)}`
+}

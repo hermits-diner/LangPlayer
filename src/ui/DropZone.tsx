@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { clearAllSessions, countSessions } from '../core/storage/db'
+import { formatBytes, getStorageStatus, requestPersistence, type StorageStatus } from '../core/storage/quota'
 import { useAppStore } from '../store/useAppStore'
 import { useLoadFiles } from './useLoadFiles'
 
@@ -10,10 +11,14 @@ export function DropZone({ isDragging }: { isDragging: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [url, setUrl] = useState('')
   const [savedCount, setSavedCount] = useState(0)
+  const [storage, setStorage] = useState<StorageStatus | null>(null)
 
-  useEffect(() => {
+  const refreshStorage = useCallback(() => {
     void countSessions().then(setSavedCount)
+    void getStorageStatus().then(setStorage)
   }, [])
+
+  useEffect(refreshStorage, [refreshStorage])
 
   const submitUrl = (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,12 +84,36 @@ export function DropZone({ isDragging }: { isDragging: boolean }) {
         </p>
 
         {savedCount > 0 && (
-          <p className="text-xs text-slate-600">
-            학습 기록 {savedCount}개 저장됨 — 같은 파일을 다시 열면 이어집니다.{' '}
+          <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-slate-600">
+            <span>학습 기록 {savedCount}개 — 같은 파일을 다시 열면 이어집니다.</span>
+
+            {storage?.usageBytes !== null && storage?.usageBytes !== undefined && (
+              <span className="text-slate-700">
+                {formatBytes(storage.usageBytes)} 사용
+                {storage.quotaBytes ? ` / ${formatBytes(storage.quotaBytes)}` : ''}
+              </span>
+            )}
+
+            {storage?.supported &&
+              (storage.persisted ? (
+                <span className="text-emerald-500/70">영구 보관됨</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void requestPersistence().then(refreshStorage)
+                  }}
+                  title="디스크가 부족하면 브라우저가 학습 기록을 지울 수 있습니다"
+                  className="text-amber-500/80 underline decoration-dotted underline-offset-2 transition hover:text-amber-400"
+                >
+                  삭제될 수 있음 · 영구 보관 요청
+                </button>
+              ))}
+
             <button
               type="button"
               onClick={() => {
-                void clearAllSessions().then(() => setSavedCount(0))
+                void clearAllSessions().then(refreshStorage)
               }}
               className="underline decoration-dotted underline-offset-2 transition hover:text-slate-400"
             >

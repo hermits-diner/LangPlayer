@@ -8,6 +8,7 @@ import {
   saveSettings,
   type SessionRow,
 } from '../core/storage/db'
+import { requestPersistence } from '../core/storage/quota'
 import {
   deserializeLoopSettings,
   serializeLoopSettings,
@@ -35,6 +36,8 @@ export function usePersistence() {
 
   /** 이 세션의 복원이 끝났는지 — 끝나기 전에는 저장하지 않는다 */
   const restoredKey = useRef<string | null>(null)
+  /** 삭제 면제 등급은 지킬 기록이 생긴 뒤 한 번만 요청한다 */
+  const persistenceAsked = useRef(false)
 
   // ─── 전역 설정 복원 (앱 시작 시 한 번) ───────────────────────────
   useEffect(() => {
@@ -143,7 +146,13 @@ export function usePersistence() {
         graded: Object.keys(results),
       }
 
-      void saveSession(row)
+      void saveSession(row).then(() => {
+        // 첫 저장이 성공한 시점 = 지킬 기록이 생긴 시점.
+        // 페이지 로드 직후가 아니라 여기서 물어야 Firefox 프롬프트가 뜬금없지 않다.
+        if (persistenceAsked.current) return
+        persistenceAsked.current = true
+        void requestPersistence()
+      })
     }, SAVE_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)

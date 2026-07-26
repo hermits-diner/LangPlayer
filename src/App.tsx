@@ -661,8 +661,8 @@ export default function App() {
             theater ? 'w-64' : 'w-96'
           }`}
         >
-          <div className="flex items-baseline gap-2 border-b border-white/10 bg-black/20 px-3 py-2.5">
-            <span className="text-xs tabular-nums text-slate-400">
+          <div className="flex items-center gap-2 border-b border-white/10 bg-black/20 px-3 py-1.5">
+            <span className="shrink-0 text-xs tabular-nums text-slate-400">
               {segments.length > 0 ? (
                 <>
                   <span className="text-slate-100">{activeIndex + 1}</span>
@@ -672,9 +672,23 @@ export default function App() {
                 '—'
               )}
             </span>
-            <span className="text-[10.5px] tracking-wide text-slate-700">
+            <span className="min-w-0 truncate text-[10.5px] tracking-wide text-slate-700">
               F6·F7 이동 · F5 반복 · F11 연속
             </span>
+            {/*
+              자막을 고치는 자리가 여기이므로 저장도 여기 둔다. 메뉴 안에만 있으면
+              고친 것을 파일로 꺼낼 수 있다는 사실 자체를 모른 채 지나간다.
+            */}
+            {segments.length > 0 && (
+              <button
+                type="button"
+                onClick={saveSubtitle}
+                className="chip ml-auto shrink-0 px-1.5 py-0.5 text-[11px]"
+                title="고친 자막을 .srt 파일로 저장합니다 (Ctrl+Shift+S)"
+              >
+                자막 저장
+              </button>
+            )}
           </div>
           <div className="min-h-0 flex-1">
             {segments.length === 0 ? (

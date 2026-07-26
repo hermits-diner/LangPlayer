@@ -112,7 +112,7 @@ export default function App() {
     [playSegment],
   )
 
-  /** F6 — 재생 중이면 멈추고, 멈춰 있으면 조금 되감아 다시 재생 */
+  /** F8 — 재생 중이면 멈추고, 멈춰 있으면 조금 되감아 다시 재생 */
   const togglePause = useCallback(() => {
     const adapter = adapterRef.current
     if (!adapter) return
@@ -617,7 +617,7 @@ export default function App() {
         <aside className="flex w-96 shrink-0 flex-col border-l border-white/10">
           <div className="border-b border-white/10 px-3 py-2 text-xs text-slate-500">
             문장 {segments.length > 0 ? `${activeIndex + 1} / ${segments.length}` : '—'}
-            <span className="ml-2 text-slate-700">F7/F8 이동 · F5 반복 · F11 연속</span>
+            <span className="ml-2 text-slate-700">F6/F7 이동 · F5 반복 · F11 연속</span>
           </div>
           <div className="min-h-0 flex-1">
             <SegmentList onSelect={selectFromList} onMerge={mergeSections} onSplit={splitSection} />

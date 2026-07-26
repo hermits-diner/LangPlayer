@@ -11,7 +11,7 @@ export interface PlayerCommands {
   move: (delta: number) => void
   gotoFirst: () => void
   gotoLast: () => void
-  /** F6 — 일시정지, 멈춰 있으면 되감아 재생 */
+  /** F8 — 일시정지, 멈춰 있으면 되감아 재생 */
   togglePause: () => void
   /** F11 — 선택 구간(없으면 현재부터) 연속 재생 */
   playContinuous: () => void
@@ -70,24 +70,26 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
           commands.replay()
           return
 
+        // 이동은 F6·F7 한 쌍으로 둔다. 손이 가장 자주 가는 동작이라
+        // 나란히 붙어 있는 편이 낫고, Ctrl 조합도 같은 키에 얹는다.
         case 'F6':
           e.preventDefault()
-          commands.togglePause()
+          if (e.ctrlKey) commands.gotoFirst()
+          else commands.move(-1)
           return
 
         case 'F7':
           e.preventDefault()
           // Alt 조합은 클립보드 가져오기 — 섹션 이동과 겹치지 않게 먼저 본다
           if (e.altKey) commands.clipboardIn()
-          else if (e.ctrlKey) commands.gotoFirst()
-          else commands.move(-1)
+          else if (e.ctrlKey) commands.gotoLast()
+          else commands.move(1)
           return
 
         case 'F8':
           e.preventDefault()
           if (e.altKey) commands.clipboardOut()
-          else if (e.ctrlKey) commands.gotoLast()
-          else commands.move(1)
+          else commands.togglePause()
           return
 
         case 'F3':

@@ -4,6 +4,7 @@ import { scoreDictation } from '../core/dictation/score'
 import { DEFAULT_LOOP_SETTINGS, type LoopSettings, type LoopStatus } from '../core/loop/LoopController'
 import { mergeWithNext, splitSegment, transformSegments } from '../core/subtitle/segment'
 import { splitSegmentBySentence } from '../core/subtitle/sentenceSplit'
+import { snapSegmentsToSpeech } from '../core/sync/snap'
 import { ENVELOPE_FRAME_SEC } from '../core/sync/audioAnalysis'
 import type { Cue, Segment } from '../core/subtitle/types'
 
@@ -86,6 +87,8 @@ interface AppState {
   /** 파형 그리기와 자동 맞춤이 함께 쓰는 에너지 포락선 */
   waveform: Float32Array | null
   waveformState: WaveformState
+  /** 문장별 미세 맞춤 직전 상태 (한 단계 되돌리기용) */
+  snapUndo: Segment[] | null
 
   loopSettings: LoopSettings
   loopStatus: LoopStatus
@@ -147,6 +150,12 @@ interface AppState {
   splitActiveAt: (timeSec: number) => void
   /** 현재 문장을 문장 단위로 쪼갠다. 문장이 하나뿐이면 아무 일도 하지 않고 false */
   splitActiveBySentence: () => boolean
+  /**
+   * 문장별 미세 맞춤 — 각 문장을 파형의 소리 경계로 당긴다.
+   * 되돌릴 수 있도록 직전 상태를 한 단계 보관한다.
+   */
+  snapToSpeech: () => { movedCount: number; averageShiftSec: number } | null
+  undoSnap: () => boolean
   nudgeOffset: (deltaSec: number) => void
   /** 자동 맞춤 결과처럼 배율까지 포함한 보정을 통째로 적용 */
   applySync: (next: SyncTransform) => void
@@ -175,6 +184,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   selection: [],
   waveform: null,
   waveformState: 'idle',
+  snapUndo: null,
 
   loopSettings: DEFAULT_LOOP_SETTINGS,
   loopStatus: IDLE_STATUS,
@@ -240,6 +250,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
         selection: [],
               waveform: null,
         waveformState: 'idle' as const,
+        snapUndo: null,
         inputs: {},
         results: {},
         loopStatus: IDLE_STATUS,
@@ -401,6 +412,25 @@ export const useAppStore = create<AppState>()((set, get) => ({
           }))
 
     set({ segments: splitSegment(segments, activeIndex, adjusted) })
+  },
+
+  snapToSpeech: () => {
+    const { segments, waveform } = get()
+    if (segments.length === 0 || !waveform) return null
+
+    const result = snapSegmentsToSpeech(segments, waveform, { frameSec: ENVELOPE_FRAME_SEC })
+    if (result.movedCount === 0) return result
+
+    set({ segments: result.segments, snapUndo: segments })
+    return result
+  },
+
+  undoSnap: () => {
+    const { snapUndo } = get()
+    if (!snapUndo) return false
+
+    set({ segments: snapUndo, snapUndo: null })
+    return true
   },
 
   nudgeOffset: (deltaSec) =>

@@ -39,6 +39,30 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
   const auto = useAutoSync()
   const isInfinite = !Number.isFinite(settings.repeatCount)
   const isAdjusted = sync.offsetSec !== 0 || sync.scale !== 1
+  const canSnap = useAppStore((s) => s.waveformState === 'ready' && s.segments.length > 0)
+  const canUndoSnap = useAppStore((s) => s.snapUndo !== null)
+
+  /**
+   * 문장별 미세 맞춤은 문장 수백 개를 한꺼번에 옮긴다. 되돌릴 방법을 같이
+   * 주지 않으면 무서워서 못 누른다 — 결과와 함께 되돌리기를 안내한다.
+   */
+  const snapToSpeech = () => {
+    const store = useAppStore.getState()
+    const result = store.snapToSpeech()
+
+    if (!result) {
+      store.setError('파형이 아직 준비되지 않았습니다.')
+      return
+    }
+    if (result.movedCount === 0) {
+      store.setNotice('옮길 문장이 없습니다. 이미 소리와 맞아 있습니다.')
+      return
+    }
+
+    store.setNotice(
+      `${result.movedCount}개 문장을 평균 ${result.averageShiftSec.toFixed(2)}초 옮겼습니다. 되돌리려면 ↺를 누르세요.`,
+    )
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-white/10 bg-black/25 px-4 py-2 text-sm">
@@ -148,6 +172,20 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
             </button>
           )}
 
+          <button
+            type="button"
+            onClick={snapToSpeech}
+            disabled={!canSnap}
+            title={
+              canSnap
+                ? '문장마다 조금씩 어긋날 때 — 각 문장을 파형의 소리 시작·끝으로 당깁니다'
+                : '파형이 있어야 쓸 수 있습니다 (YouTube는 불가)'
+            }
+            className="chip disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            문장별 맞춤
+          </button>
+
           {tapMode ? (
             <button type="button" onClick={onTapSyncMark} className="chip chip-active animate-pulse">
               지금! 소리 시작 순간 클릭
@@ -163,8 +201,16 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
             </button>
           )}
 
-          {isAdjusted && (
-            <button type="button" onClick={resetSync} className="chip" title="보정 되돌리기">
+          {(isAdjusted || canUndoSnap) && (
+            <button
+              type="button"
+              onClick={() => {
+                // 문장별 맞춤이 마지막 작업이면 그것부터 되돌린다
+                if (!useAppStore.getState().undoSnap()) resetSync()
+              }}
+              className="chip"
+              title={canUndoSnap ? '문장별 맞춤 되돌리기' : '싱크 보정 되돌리기'}
+            >
               ↺
             </button>
           )}

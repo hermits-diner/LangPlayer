@@ -34,6 +34,12 @@ export interface PlayerCommands {
   /** Alt+F7 / Alt+F8 — 클립보드 가져오기·내보내기 */
   clipboardIn: () => void
   clipboardOut: () => void
+  /** F1 — 단축키 도움말 */
+  toggleHelp: () => void
+  /** F10 — 메뉴 */
+  toggleMenu: () => void
+  /** Ctrl+P — 자막 스크립트 인쇄 */
+  print: () => void
 }
 
 /**
@@ -65,6 +71,16 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
       // preventDefault로 막을 수 있지만, 찾기 막대가 열려 있으면 그쪽이 가져간다.
       // 그럴 때는 Esc로 찾기 막대를 닫으면 다시 앱으로 온다.
       switch (e.key) {
+        case 'F1':
+          e.preventDefault()
+          commands.toggleHelp()
+          return
+
+        case 'F10':
+          e.preventDefault()
+          commands.toggleMenu()
+          return
+
         case 'F5':
           e.preventDefault()
           commands.replay()
@@ -141,6 +157,12 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
       if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
         e.preventDefault()
         commands.saveDraft()
+        return
+      }
+
+      if (e.ctrlKey && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault()
+        commands.print()
         return
       }
 

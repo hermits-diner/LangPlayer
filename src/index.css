@@ -151,3 +151,79 @@ audio {
   scrollbar-width: thin;
   scrollbar-color: var(--color-ink-600) transparent;
 }
+
+/**
+ * 인쇄 (Ctrl+P) — 자막 스크립트만.
+ *
+ * 화면과 종이는 요구가 정반대다. 어두운 배경을 그대로 뽑으면 잉크만 버리고
+ * 읽기도 나쁘다. 화면용 껍데기를 통째로 숨기고 밝은 문서로 다시 짠다.
+ */
+.print-only {
+  display: none;
+}
+
+@media print {
+  .no-print,
+  body::before {
+    display: none !important;
+  }
+
+  html,
+  body,
+  #root {
+    height: auto;
+    background: #fff;
+    color: #111;
+  }
+
+  .print-only {
+    display: block;
+    padding: 0;
+  }
+
+  .print-only h1 {
+    margin: 0 0 0.15rem;
+    font-size: 15pt;
+    font-weight: 600;
+  }
+
+  .print-meta {
+    margin: 0 0 1.2rem;
+    color: #666;
+    font-size: 9pt;
+  }
+
+  .print-script {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .print-script li {
+    display: flex;
+    gap: 0.75rem;
+    /* 문장이 페이지 사이에 걸쳐 잘리지 않게 한다 */
+    break-inside: avoid;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid #eee;
+    font-size: 10.5pt;
+    line-height: 1.65;
+  }
+
+  .print-time {
+    flex: 0 0 3.2rem;
+    color: #888;
+    font-size: 8.5pt;
+    font-variant-numeric: tabular-nums;
+    /* 시각은 첫 줄 기준선에 맞춘다 */
+    padding-top: 0.15rem;
+  }
+
+  .print-text {
+    flex: 1;
+  }
+
+  @page {
+    margin: 16mm 14mm;
+  }
+}

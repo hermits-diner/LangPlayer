@@ -5,7 +5,10 @@ import type { PlayerAdapter } from './core/player/PlayerAdapter'
 import { YouTubeAdapter } from './core/player/YouTubeAdapter'
 import { canSplitAt, useAppStore } from './store/useAppStore'
 import { useTextStore } from './store/useTextStore'
+import { AppMenu } from './ui/AppMenu'
 import { DictationPane } from './ui/DictationPane'
+import { HelpOverlay } from './ui/HelpOverlay'
+import { PrintView } from './ui/PrintView'
 import { TextWindow } from './ui/TextWindow'
 import { TranscriptPaste } from './ui/TranscriptPaste'
 import { DropZone } from './ui/DropZone'
@@ -58,6 +61,8 @@ export default function App() {
 
   const [isDragging, setDragging] = useState(false)
   const [tapMode, setTapMode] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [volume, setVolumeState] = useState(1)
   const [durationSec, setDurationSec] = useState(0)
   const [view, setView] = useState<WaveformView>({ startSec: 0, endSec: 60 })
@@ -293,6 +298,15 @@ export default function App() {
 
   const openFiles = useCallback(() => fileInputRef.current?.click(), [])
 
+  /** Ctrl+P — 자막 스크립트만 인쇄한다 (인쇄용 문서는 CSS가 갈아끼운다) */
+  const print = useCallback(() => {
+    if (useAppStore.getState().segments.length === 0) {
+      useAppStore.getState().setNotice('인쇄할 자막이 없습니다.')
+      return
+    }
+    window.print()
+  }, [])
+
   /** Ctrl+S — 받아쓰기 전문을 텍스트 파일로 */
   const saveDraft = useCallback(() => {
     const store = useAppStore.getState()
@@ -417,6 +431,9 @@ export default function App() {
       saveDraft,
       clipboardIn: () => void clipboardIn(),
       clipboardOut: () => void clipboardOut(),
+      toggleHelp: () => setHelpOpen((v) => !v),
+      toggleMenu: () => setMenuOpen((v) => !v),
+      print,
     }),
     [
       replay,
@@ -439,6 +456,7 @@ export default function App() {
       saveDraft,
       clipboardIn,
       clipboardOut,
+      print,
     ],
   )
 
@@ -577,9 +595,21 @@ export default function App() {
     )
   }
 
+  const menuItems = [
+    { label: '파일 열기', hint: 'Ctrl+O', onSelect: openFiles },
+    { label: '받아쓰기 전문 저장', hint: 'Ctrl+S', onSelect: saveDraft },
+    { label: '자막 스크립트 인쇄', hint: 'Ctrl+P', onSelect: print },
+    { label: '텍스트창', hint: 'Ctrl+T', onSelect: () => useTextStore.getState().toggleOpen() },
+    { label: '단축키 도움말', hint: 'F1', onSelect: () => setHelpOpen(true) },
+    { label: '다른 파일 열기', onSelect: clearAll },
+  ]
+
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-3 border-b border-white/10 bg-black/20 px-4 py-2.5">
+      <PrintView />
+
+      <div className="no-print flex h-full min-h-0 flex-col">
+      <header className="relative flex items-center gap-3 border-b border-white/10 bg-black/20 px-4 py-2.5">
         <span className="text-[13px] font-semibold tracking-tight text-slate-200">LangPlayer</span>
         <span className="h-3.5 w-px bg-white/[0.08]" />
         <span className="min-w-0 truncate text-xs text-slate-500">{media.name}</span>
@@ -604,9 +634,17 @@ export default function App() {
         >
           텍스트창 <kbd className="kbd ml-0.5">Ctrl+T</kbd>
         </button>
-        <button type="button" onClick={clearAll} className="chip">
-          다른 파일 열기
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          className={`chip ${menuOpen ? 'chip-active' : ''}`}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+        >
+          메뉴 <kbd className="kbd ml-0.5">F10</kbd>
         </button>
+
+        <AppMenu open={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
       </header>
 
       {(error || notice) && (
@@ -688,12 +726,15 @@ export default function App() {
       </main>
 
       {isDragging && (
-        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-sky-500/10 backdrop-blur-sm">
-          <p className="rounded-xl border-2 border-dashed border-sky-400 px-8 py-6 text-sky-200">
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-sky-400/[0.07] backdrop-blur-sm">
+          <p className="rounded-xl border border-dashed border-sky-400/70 px-8 py-6 text-sm text-sky-200">
             여기에 놓으면 불러옵니다
           </p>
         </div>
       )}
+
+      <HelpOverlay open={helpOpen} onClose={() => setHelpOpen(false)} />
+      </div>
     </div>
   )
 }

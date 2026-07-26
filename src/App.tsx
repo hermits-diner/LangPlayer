@@ -45,6 +45,7 @@ export default function App() {
   const error = useAppStore((s) => s.error)
   const notice = useAppStore((s) => s.notice)
   const clearAll = useAppStore((s) => s.clearAll)
+  const textWindowOpen = useTextStore((s) => s.open)
 
   const mediaRef = useRef<HTMLMediaElement | null>(null)
   const youtubeRef = useRef<HTMLDivElement | null>(null)
@@ -276,6 +277,19 @@ export default function App() {
   )
 
   // ─── 텍스트창 연동 ─────────────────────────────────────────────
+
+  /** 텍스트창에서 커서가 옮겨간 줄을 현재 문장으로 삼는다 */
+  const focusLine = useCallback(
+    (line: number, play: boolean) => {
+      const store = useAppStore.getState()
+      if (line < 0 || line >= store.segments.length) return
+
+      if (play) playSegment(line)
+      else store.setActiveIndex(line)
+    },
+    [playSegment],
+  )
+
   const openFiles = useCallback(() => fileInputRef.current?.click(), [])
 
   const saveDraft = useCallback(() => void workspace.save('draft'), [workspace])
@@ -557,7 +571,15 @@ export default function App() {
             {tempGroup.from + 1}~{tempGroup.to + 1} 묶음 · Enter로 해제
           </span>
         )}
-        <button type="button" onClick={clearAll} className="ml-auto chip">
+        <button
+          type="button"
+          onClick={() => useTextStore.getState().toggleOpen()}
+          className={`ml-auto chip ${textWindowOpen ? 'chip-active' : ''}`}
+          title="받아쓰기 전체를 한 문서로 놓고 고칩니다 (Ctrl+T)"
+        >
+          텍스트창 <kbd className="kbd ml-0.5">Ctrl+T</kbd>
+        </button>
+        <button type="button" onClick={clearAll} className="chip">
           다른 파일 열기
         </button>
       </header>
@@ -611,7 +633,7 @@ export default function App() {
             <DictationPane onReplay={replay} onNext={() => move(1)} />
           </div>
 
-          <TextWindow />
+          <TextWindow onFocusLine={focusLine} />
         </section>
 
         <aside className="flex w-96 shrink-0 flex-col border-l border-white/10">

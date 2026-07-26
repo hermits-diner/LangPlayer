@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { compareDocuments } from '../core/text/compare'
 import { TEXT_KINDS, TEXT_KIND_ORDER, type TextKind } from '../core/text/types'
 import { useAppStore } from '../store/useAppStore'
@@ -13,7 +13,17 @@ import { useWorkspace } from './useWorkspace'
  * 위창에는 내 드랩(또는 약형드랩), 아래창에는 정답인 패치를 둔다.
  * F9 비교 모드는 문장별 채점과 똑같은 엔진으로 줄마다 대조한다.
  */
-export function TextWindow() {
+export interface TextWindowProps {
+  /** 커서가 놓인 줄의 문장으로 옮긴다. play가 참이면 그 구간을 재생한다 */
+  onFocusLine: (line: number, play: boolean) => void
+}
+
+/** 커서 위치가 몇 번째 줄인지 — 드랩은 한 줄이 한 문장이라 곧 문장 번호다 */
+function lineAtCursor(textarea: HTMLTextAreaElement): number {
+  return textarea.value.slice(0, textarea.selectionStart).split('\n').length - 1
+}
+
+export function TextWindow({ onFocusLine }: TextWindowProps) {
   const open = useTextStore((s) => s.open)
   const lowerOpen = useTextStore((s) => s.lowerOpen)
   const size = useTextStore((s) => s.size)
@@ -35,6 +45,24 @@ export function TextWindow() {
 
   const workspace = useWorkspace()
   const [menu, setMenu] = useState<'save' | 'load' | null>(null)
+  const lastLine = useRef(-1)
+
+  /**
+   * 커서가 놓인 줄을 현재 문장으로 삼는다.
+   *
+   * 드랩은 한 줄이 한 문장이므로 줄 번호가 곧 문장 번호다. Enter로 줄을 넘기면
+   * 다음 문장이 재생되고, 마우스로 다른 줄을 짚으면 그 문장으로 옮겨간다.
+   * 전체 스크립트를 한 문서로 써 내려가면서도 듣기가 따라오게 하기 위해서다.
+   */
+  const syncCursorLine = (textarea: HTMLTextAreaElement, play: boolean) => {
+    if (upperKind !== 'draft') return
+
+    const line = lineAtCursor(textarea)
+    if (line === lastLine.current && !play) return
+
+    lastLine.current = line
+    onFocusLine(line, play)
+  }
 
   // inputs/segments가 바뀌면 드랩도 다시 만들어진다
   const upperText = useMemo(
@@ -154,6 +182,9 @@ export function TextWindow() {
             <textarea
               value={upperText}
               onChange={(e) => setText(upperKind, e.target.value)}
+              // 줄바꿈은 그대로 두고(한 줄 = 한 문장), 커서가 옮겨간 줄만 따라간다
+              onKeyUp={(e) => syncCursorLine(e.currentTarget, e.key === 'Enter')}
+              onClick={(e) => syncCursorLine(e.currentTarget, false)}
               spellCheck={false}
               placeholder={
                 upperKind === 'draft'

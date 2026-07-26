@@ -1,5 +1,6 @@
 import { useAppStore } from '../store/useAppStore'
 import { formatTime } from './format'
+import { stageLabel, useAutoSync } from './useAutoSync'
 
 const RATES = [0.6, 0.75, 0.9, 1, 1.25]
 const GAPS = [
@@ -9,20 +10,33 @@ const GAPS = [
   { ms: 3000, label: '3초' },
 ]
 
+export interface LoopControlsProps {
+  onStop: () => void
+  /** 탭 맞추기 시작 — 문장 시작 조금 전부터 재생한다 */
+  onTapSyncStart: () => void
+  /** 소리가 시작된 순간을 찍는다 */
+  onTapSyncMark: () => void
+  tapMode: boolean
+}
+
 /** 반복 재생 조작 막대 — 학습 중 가장 자주 만지는 값들만 올려둔다 */
-export function LoopControls({ onStop }: { onStop: () => void }) {
+export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }: LoopControlsProps) {
   const settings = useAppStore((s) => s.loopSettings)
   const status = useAppStore((s) => s.loopStatus)
   const currentTime = useAppStore((s) => s.currentTime)
-  const offsetSec = useAppStore((s) => s.offsetSec)
+  const sync = useAppStore((s) => s.sync)
+  const mediaKind = useAppStore((s) => s.media?.kind)
   const hideSubtitles = useAppStore((s) => s.hideSubtitles)
   const autoAdvance = useAppStore((s) => s.autoAdvance)
   const update = useAppStore((s) => s.updateLoopSettings)
   const nudgeOffset = useAppStore((s) => s.nudgeOffset)
+  const resetSync = useAppStore((s) => s.resetSync)
   const toggleHide = useAppStore((s) => s.toggleHideSubtitles)
   const toggleAutoAdvance = useAppStore((s) => s.toggleAutoAdvance)
 
+  const auto = useAutoSync()
   const isInfinite = !Number.isFinite(settings.repeatCount)
+  const isAdjusted = sync.offsetSec !== 0 || sync.scale !== 1
 
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 bg-black/20 px-4 py-2.5 text-sm">
@@ -87,16 +101,60 @@ export function LoopControls({ onStop }: { onStop: () => void }) {
 
       <Field label="싱크">
         <div className="flex items-center gap-1">
-          <button type="button" onClick={() => nudgeOffset(-0.1)} className="chip">
+          <button type="button" onClick={() => nudgeOffset(-0.1)} className="chip" title="자막을 0.1초 앞으로">
             −
           </button>
-          <span className="w-14 text-center text-xs tabular-nums text-slate-400">
-            {offsetSec > 0 ? '+' : ''}
-            {offsetSec.toFixed(1)}s
+          <span
+            className={`w-16 text-center text-xs tabular-nums ${isAdjusted ? 'text-sky-300' : 'text-slate-400'}`}
+            title={sync.scale !== 1 ? `재생속도 차이 ${(sync.scale * 100 - 100).toFixed(1)}% 보정됨` : undefined}
+          >
+            {sync.offsetSec > 0 ? '+' : ''}
+            {sync.offsetSec.toFixed(1)}s{sync.scale !== 1 ? '*' : ''}
           </span>
-          <button type="button" onClick={() => nudgeOffset(0.1)} className="chip">
+          <button type="button" onClick={() => nudgeOffset(0.1)} className="chip" title="자막을 0.1초 뒤로">
             +
           </button>
+
+          {auto.running ? (
+            <button type="button" onClick={auto.cancel} className="chip chip-active">
+              {stageLabel(auto.stage)} · 취소
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void auto.run()}
+              disabled={mediaKind === 'youtube'}
+              title={
+                mediaKind === 'youtube'
+                  ? 'YouTube는 오디오에 접근할 수 없어 자동 맞춤을 쓸 수 없습니다'
+                  : '음성과 자막을 대조해 자동으로 맞춥니다'
+              }
+              className="chip disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              자동 맞춤
+            </button>
+          )}
+
+          {tapMode ? (
+            <button type="button" onClick={onTapSyncMark} className="chip chip-active animate-pulse">
+              지금! 소리 시작 순간 클릭
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onTapSyncStart}
+              title="문장 시작 조금 전부터 재생합니다. 소리가 들리는 순간 다시 누르세요"
+              className="chip"
+            >
+              탭 맞추기
+            </button>
+          )}
+
+          {isAdjusted && (
+            <button type="button" onClick={resetSync} className="chip" title="보정 되돌리기">
+              ↺
+            </button>
+          )}
         </div>
       </Field>
 

@@ -23,6 +23,14 @@ export function useKeyboardShortcuts({ replay, stop, move }: Handlers) {
       const isTyping = Boolean(target?.closest('input, textarea, [contenteditable="true"]'))
       const hasModifier = e.ctrlKey || e.altKey || e.metaKey
 
+      // F5는 브라우저 새로고침을 가로채 구간 반복으로 쓴다 (새로고침은 Ctrl+R)
+      // 입력창 안에서도 동작해야 하므로 타이핑 검사보다 먼저 처리한다
+      if (e.key === 'F5' && !hasModifier) {
+        e.preventDefault()
+        replay()
+        return
+      }
+
       // 타이핑 중에는 수식키 조합만 받는다
       if (isTyping && !hasModifier) return
 

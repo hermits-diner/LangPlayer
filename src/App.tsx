@@ -16,6 +16,9 @@ import { usePersistence } from './ui/usePersistence'
 /** 재생 위치를 스토어에 반영하는 주기. 매 프레임 갱신하면 리렌더가 폭주한다 */
 const TIME_UPDATE_INTERVAL_SEC = 0.2
 
+/** 탭 맞추기에서 문장 시작 몇 초 전부터 들려줄지 — 마음의 준비를 할 시간 */
+const TAP_SYNC_LEAD_SEC = 3
+
 export default function App() {
   const media = useAppStore((s) => s.media)
   const subtitle = useAppStore((s) => s.subtitle)
@@ -29,8 +32,10 @@ export default function App() {
   const mediaRef = useRef<HTMLMediaElement | null>(null)
   const youtubeRef = useRef<HTMLDivElement | null>(null)
   const loopRef = useRef<LoopController | null>(null)
+  const adapterRef = useRef<PlayerAdapter | null>(null)
 
   const [isDragging, setDragging] = useState(false)
+  const [tapMode, setTapMode] = useState(false)
   const { loadFiles } = useLoadFiles()
 
   // 어댑터 콜백은 오래 살아남으므로 스토어를 직접 읽어 stale closure를 피한다
@@ -62,6 +67,33 @@ export default function App() {
     },
     [playSegment],
   )
+
+  /** 문장 시작 3초 전부터 흘려 들려주고, 사용자가 소리 시작 순간을 찍게 한다 */
+  const startTapSync = useCallback(() => {
+    const store = useAppStore.getState()
+    const segment = store.segments[store.activeIndex]
+    const adapter = adapterRef.current
+    if (!segment || !adapter) return
+
+    loopRef.current?.stop()
+    setTapMode(true)
+    store.setNotice('소리가 시작되는 순간에 "지금!"을 누르세요.')
+
+    void adapter.seek(Math.max(0, segment.start - TAP_SYNC_LEAD_SEC)).then(() => adapter.play())
+  }, [])
+
+  const markTapSync = useCallback(() => {
+    const store = useAppStore.getState()
+    const segment = store.segments[store.activeIndex]
+    const adapter = adapterRef.current
+    setTapMode(false)
+    if (!segment || !adapter) return
+
+    adapter.pause()
+    const delta = Number((adapter.getCurrentTime() - segment.start).toFixed(3))
+    store.nudgeOffset(delta)
+    store.setNotice(`탭 맞추기 — 자막을 ${delta >= 0 ? '+' : ''}${delta.toFixed(2)}초 이동했습니다.`)
+  }, [])
 
   useKeyboardShortcuts({ replay, stop, move })
   usePersistence()
@@ -96,6 +128,7 @@ export default function App() {
           return
         }
 
+        adapterRef.current = adapter
         adapter.setRate(useAppStore.getState().loopSettings.rate)
 
         loopRef.current = new LoopController(adapter, useAppStore.getState().loopSettings, {
@@ -126,6 +159,7 @@ export default function App() {
       unsubscribeTick?.()
       loopRef.current?.destroy()
       loopRef.current = null
+      adapterRef.current = null
       adapter?.destroy()
       if (youtubeHost?.parentElement) youtubeHost.remove()
     }
@@ -200,9 +234,14 @@ export default function App() {
       <main className="flex min-h-0 flex-1">
         <section className="flex min-w-0 flex-1 flex-col">
           <PlayerPane mediaRef={mediaRef} youtubeRef={youtubeRef} />
-          <LoopControls onStop={stop} />
+          <LoopControls
+            onStop={stop}
+            onTapSyncStart={startTapSync}
+            onTapSyncMark={markTapSync}
+            tapMode={tapMode}
+          />
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <DictationPane onReplay={replay} />
+            <DictationPane onReplay={replay} onNext={() => move(1)} />
           </div>
         </section>
 

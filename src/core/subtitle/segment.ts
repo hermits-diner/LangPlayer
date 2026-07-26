@@ -150,13 +150,23 @@ function reindex(segments: Segment[]): Segment[] {
   return segments.map((s, i) => ({ ...s, id: `seg-${i}` }))
 }
 
-/** 자막 싱크가 밀렸을 때 전체를 offset초만큼 이동 */
-export function shiftSegments(segments: Segment[], offsetSec: number): Segment[] {
+/**
+ * 시간축 선형 변환: `t' = scale·t + offset`
+ *
+ * 단순 이동(scale=1)뿐 아니라 프레임레이트 불일치로 생긴 드리프트 보정까지
+ * 같은 식으로 처리한다.
+ */
+export function transformSegments(segments: Segment[], scale: number, offsetSec: number): Segment[] {
   return segments.map((s) => ({
     ...s,
-    start: Math.max(0, s.start + offsetSec),
-    end: Math.max(0, s.end + offsetSec),
+    start: Math.max(0, s.start * scale + offsetSec),
+    end: Math.max(0, s.end * scale + offsetSec),
   }))
+}
+
+/** 자막 싱크가 밀렸을 때 전체를 offset초만큼 이동 */
+export function shiftSegments(segments: Segment[], offsetSec: number): Segment[] {
+  return transformSegments(segments, 1, offsetSec)
 }
 
 /** 현재 재생 위치에 해당하는 세그먼트 index (없으면 -1) */

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+﻿import { useEffect, useRef } from 'react'
 import { scoreDictation } from '../core/dictation/score'
 import type { DictationResult } from '../core/dictation/score'
 import {
@@ -92,7 +92,7 @@ export function usePersistence() {
           cues: row.cues,
           segments: row.segments,
           activeIndex: row.activeIndex,
-          offsetSec: row.offsetSec,
+          sync: { scale: row.scale ?? 1, offsetSec: row.offsetSec ?? 0 },
           currentTime: row.currentTime,
           inputs: row.inputs,
           results,
@@ -117,7 +117,7 @@ export function usePersistence() {
   const cues = useAppStore((s) => s.cues)
   const segments = useAppStore((s) => s.segments)
   const activeIndex = useAppStore((s) => s.activeIndex)
-  const offsetSec = useAppStore((s) => s.offsetSec)
+  const sync = useAppStore((s) => s.sync)
   const inputs = useAppStore((s) => s.inputs)
   const results = useAppStore((s) => s.results)
 
@@ -139,7 +139,8 @@ export function usePersistence() {
         // 재생 위치는 매 프레임 바뀌므로 저장 시점에 한 번만 읽는다
         currentTime: useAppStore.getState().currentTime,
         activeIndex,
-        offsetSec,
+        offsetSec: sync.offsetSec,
+        scale: sync.scale,
         cues,
         segments,
         inputs,
@@ -156,7 +157,7 @@ export function usePersistence() {
     }, SAVE_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [sessionKey, media, subtitle, cues, segments, activeIndex, offsetSec, inputs, results])
+  }, [sessionKey, media, subtitle, cues, segments, activeIndex, sync, inputs, results])
 }
 
 /**

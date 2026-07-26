@@ -9,7 +9,7 @@ import { DiffView } from './DiffView'
  * 끝나야 한다. 문장을 옮길 때마다 포커스가 따라오도록 해서 마우스를 쓰지
  * 않고도 계속 진행할 수 있게 한다.
  */
-export function DictationPane({ onReplay }: { onReplay: () => void }) {
+export function DictationPane({ onReplay, onNext }: { onReplay: () => void; onNext: () => void }) {
   const segments = useAppStore((s) => s.segments)
   const activeIndex = useAppStore((s) => s.activeIndex)
   const inputs = useAppStore((s) => s.inputs)
@@ -41,9 +41,13 @@ export function DictationPane({ onReplay }: { onReplay: () => void }) {
   const value = inputs[key] ?? ''
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enter는 상황에 따라 두 가지 일을 한다.
+    // 아직 채점 전이면 채점하고, 이미 채점을 봤으면 다음 문장으로 넘어간다.
+    // 받아쓰기 → 확인 → 다음으로 이어지는 흐름을 한 손가락으로 굴리기 위해서다.
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      gradeActive()
+      if (result) onNext()
+      else gradeActive()
       return
     }
 
@@ -54,7 +58,8 @@ export function DictationPane({ onReplay }: { onReplay: () => void }) {
       return
     }
 
-    if (e.key === 'Escape') {
+    // F5는 브라우저 새로고침을 가로채 구간 반복으로 쓴다 (새로고침은 Ctrl+R)
+    if (e.key === 'F5' || e.key === 'Escape') {
       e.preventDefault()
       onReplay()
     }
@@ -64,9 +69,9 @@ export function DictationPane({ onReplay }: { onReplay: () => void }) {
     <div className="flex h-full flex-col gap-3 p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs text-slate-500">
-          <kbd className="kbd">Enter</kbd> 채점
+          <kbd className="kbd">Enter</kbd> {result ? '다음 문장' : '채점'}
+          <kbd className="kbd">F5</kbd> 구간 반복
           <kbd className="kbd">Tab</kbd> 정답 보기
-          <kbd className="kbd">Esc</kbd> 다시 듣기
         </div>
         {result && (
           <button

@@ -23,7 +23,9 @@ export interface SessionRow {
 
   currentTime: number
   activeIndex: number
+  /** 자막 시간축 보정. scale은 나중에 추가돼서 옛 기록에는 없을 수 있다 */
   offsetSec: number
+  scale?: number
 
   /** 원본 큐 — 자막 파일 없이 영상만 다시 열어도 복원된다 */
   cues: Cue[]

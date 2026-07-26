@@ -1,9 +1,21 @@
-import { create } from 'zustand'
+﻿import { create } from 'zustand'
 import type { DictationResult } from '../core/dictation/score'
 import { scoreDictation } from '../core/dictation/score'
 import { DEFAULT_LOOP_SETTINGS, type LoopSettings, type LoopStatus } from '../core/loop/LoopController'
-import { mergeWithNext, shiftSegments, splitSegment } from '../core/subtitle/segment'
+import { mergeWithNext, splitSegment, transformSegments } from '../core/subtitle/segment'
 import type { Cue, Segment } from '../core/subtitle/types'
+
+/**
+ * 자막 시간축 보정: `표시시각 = scale · 원본시각 + offsetSec`
+ *
+ * 단순 이동뿐 아니라 프레임레이트 불일치로 생긴 드리프트까지 한 식으로 다룬다.
+ */
+export interface SyncTransform {
+  scale: number
+  offsetSec: number
+}
+
+export const IDENTITY_SYNC: SyncTransform = { scale: 1, offsetSec: 0 }
 
 export interface MediaSource {
   kind: 'video' | 'audio' | 'youtube'
@@ -19,7 +31,7 @@ export interface RestoredSession {
   cues: Cue[]
   segments: Segment[]
   activeIndex: number
-  offsetSec: number
+  sync: SyncTransform
   currentTime: number
   inputs: Record<string, string>
   results: Record<string, DictationResult>
@@ -47,7 +59,7 @@ interface AppState {
   cues: Cue[]
   segments: Segment[]
   activeIndex: number
-  offsetSec: number
+  sync: SyncTransform
 
   loopSettings: LoopSettings
   loopStatus: LoopStatus
@@ -88,6 +100,9 @@ interface AppState {
   mergeActiveWithNext: () => void
   splitActive: () => void
   nudgeOffset: (deltaSec: number) => void
+  /** 자동 맞춤 결과처럼 배율까지 포함한 보정을 통째로 적용 */
+  applySync: (next: SyncTransform) => void
+  resetSync: () => void
 
   setError: (message: string | null) => void
   setNotice: (message: string | null) => void
@@ -107,7 +122,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   cues: [],
   segments: [],
   activeIndex: -1,
-  offsetSec: 0,
+  sync: IDENTITY_SYNC,
 
   loopSettings: DEFAULT_LOOP_SETTINGS,
   loopStatus: IDLE_STATUS,
@@ -136,7 +151,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
       cues,
       segments,
       activeIndex: segments.length > 0 ? 0 : -1,
-      offsetSec: 0,
+      sync: IDENTITY_SYNC,
       inputs: {},
       results: {},
       error: null,
@@ -147,7 +162,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
       cues: session.cues,
       segments: session.segments,
       activeIndex: session.activeIndex,
-      offsetSec: session.offsetSec,
+      sync: session.sync,
       currentTime: session.currentTime,
       inputs: session.inputs,
       results: session.results,
@@ -167,7 +182,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
         cues: [],
         segments: [],
         activeIndex: -1,
-        offsetSec: 0,
+        sync: IDENTITY_SYNC,
         inputs: {},
         results: {},
         loopStatus: IDLE_STATUS,
@@ -231,23 +246,52 @@ export const useAppStore = create<AppState>()((set, get) => ({
   },
 
   splitActive: () => {
-    const { segments, activeIndex, cues, offsetSec } = get()
+    const { segments, activeIndex, cues, sync } = get()
     if (activeIndex < 0) return
 
-    // cues는 원본 시각이므로 현재 적용된 오프셋을 다시 입혀야 위치가 맞는다
-    const shiftedCues =
-      offsetSec === 0
+    // cues는 원본 시각이므로 현재 보정을 다시 입혀야 분할 위치가 맞는다
+    const adjusted =
+      sync.scale === 1 && sync.offsetSec === 0
         ? cues
-        : cues.map((c) => ({ ...c, start: Math.max(0, c.start + offsetSec), end: Math.max(0, c.end + offsetSec) }))
+        : cues.map((c) => ({
+            ...c,
+            start: Math.max(0, c.start * sync.scale + sync.offsetSec),
+            end: Math.max(0, c.end * sync.scale + sync.offsetSec),
+          }))
 
-    set({ segments: splitSegment(segments, activeIndex, shiftedCues) })
+    set({ segments: splitSegment(segments, activeIndex, adjusted) })
   },
 
   nudgeOffset: (deltaSec) =>
     set((state) => ({
-      segments: shiftSegments(state.segments, deltaSec),
-      offsetSec: Number((state.offsetSec + deltaSec).toFixed(3)),
+      segments: transformSegments(state.segments, 1, deltaSec),
+      sync: {
+        scale: state.sync.scale,
+        offsetSec: Number((state.sync.offsetSec + deltaSec).toFixed(3)),
+      },
     })),
+
+  /**
+   * 현재 보정 위에 목표 보정을 덧씌운다.
+   *
+   * segments는 이미 현재 보정이 적용된 시각을 담고 있으므로, 원본으로 되돌렸다
+   * 다시 입히는 대신 두 변환의 차이만 계산해 한 번에 적용한다.
+   *   현재: u = s·t + o    목표: u' = s'·t + o'
+   *   ⇒ u' = (s'/s)·u + (o' − (s'/s)·o)
+   */
+  applySync: (next) =>
+    set((state) => {
+      const { scale, offsetSec } = state.sync
+      const ratio = next.scale / scale
+      const shift = next.offsetSec - ratio * offsetSec
+
+      return {
+        segments: transformSegments(state.segments, ratio, shift),
+        sync: { scale: next.scale, offsetSec: Number(next.offsetSec.toFixed(3)) },
+      }
+    }),
+
+  resetSync: () => get().applySync(IDENTITY_SYNC),
 
   setError: (error) => set({ error }),
   setNotice: (notice) => set({ notice }),

@@ -1,0 +1,55 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ink-950: #0b0e14;
+  --color-ink-900: #11151f;
+  --color-ink-800: #1a2030;
+  --color-ink-700: #262e42;
+  --color-ink-600: #3a4459;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink-950);
+  color: #e6e9f0;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  overscroll-behavior: none;
+}
+
+/* 받아쓰기 입력창: 등폭 + 넉넉한 행간 */
+.dictation-input {
+  font-family: 'JetBrains Mono', 'D2Coding', Consolas, monospace;
+  line-height: 1.9;
+}
+
+@layer components {
+  .chip {
+    @apply rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-300 transition;
+    @apply hover:border-white/25 hover:bg-white/10 hover:text-slate-100;
+  }
+
+  .chip-active {
+    @apply border-sky-400/60 bg-sky-400/15 text-sky-200;
+  }
+
+  .select {
+    @apply rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 outline-none;
+    @apply focus:border-sky-400/60;
+  }
+
+  .kbd {
+    @apply rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-slate-400;
+  }
+}
+
+/* 네이티브 컨트롤을 어두운 테마에 맞춘다 */
+video,
+audio {
+  color-scheme: dark;
+}

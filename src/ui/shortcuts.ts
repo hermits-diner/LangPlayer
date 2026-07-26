@@ -78,6 +78,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     items: [
       { keys: ['Ctrl+O'], label: '영상·자막 파일 열기' },
       { keys: ['Ctrl+S'], label: '받아쓰기 전문 저장' },
+      { keys: ['Ctrl+Shift+S'], label: '고친 자막을 .srt 파일로 저장' },
       { keys: ['Ctrl+P'], label: '자막 스크립트 인쇄' },
       { keys: ['F1'], label: '이 도움말' },
       { keys: ['F10'], label: '메뉴' },

@@ -1,8 +1,10 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { baseName, downloadText } from './core/files/download'
 import { LoopController } from './core/loop/LoopController'
 import { HtmlMediaAdapter } from './core/player/HtmlMediaAdapter'
 import type { PlayerAdapter } from './core/player/PlayerAdapter'
 import { YouTubeAdapter } from './core/player/YouTubeAdapter'
+import { toSrt } from './core/subtitle/export'
 import { canSplitAt, useAppStore } from './store/useAppStore'
 import { useTextStore } from './store/useTextStore'
 import { AppMenu } from './ui/AppMenu'
@@ -284,17 +286,33 @@ export default function App() {
       return
     }
 
-    const name = store.media?.name ?? 'transcript'
-    const base = name.includes('.') ? name.slice(0, name.lastIndexOf('.')) : name
-    const url = URL.createObjectURL(new Blob([transcript], { type: 'text/plain;charset=utf-8' }))
+    const fileName = `${baseName(store.media?.name ?? 'transcript')}.txt`
+    downloadText(fileName, transcript)
+    store.setNotice(`${fileName}으로 내려받았습니다.`)
+  }, [])
 
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${base}.txt`
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  /**
+   * Ctrl+Shift+S — 고친 자막을 SRT 파일로.
+   *
+   * 합치고 나누고 오타를 고치고 싱크를 맞춘 결과는 학습 기록에 남지만, 그건 이
+   * 브라우저 안에서만 사는 기록이다. 몇 시간 들여 고친 자막을 다른 기기나 다른
+   * 플레이어로 가져가려면 파일로 나와야 한다. 내보낸 파일을 이 앱에 다시 올리면
+   * 편집 결과 그대로 열린다.
+   *
+   * 원본과 같은 이름으로 저장하면 어느 쪽이 고친 것인지 알 수 없게 되므로 표시를
+   * 남긴다 — 자막은 대개 영상과 같은 이름으로 한 폴더에 두기 때문이다.
+   */
+  const saveSubtitle = useCallback(() => {
+    const store = useAppStore.getState()
+    if (store.segments.length === 0) {
+      store.setNotice('저장할 자막이 없습니다.')
+      return
+    }
 
-    store.setNotice(`${link.download}으로 내려받았습니다.`)
+    const source = store.subtitle?.name ?? store.media?.name ?? 'subtitle'
+    const fileName = `${baseName(source)}.수정.srt`
+    downloadText(fileName, toSrt(store.segments), { bom: true })
+    store.setNotice(`${fileName}으로 내려받았습니다 — ${store.segments.length}문장`)
   }, [])
 
   const selectFromList = useCallback(
@@ -359,6 +377,7 @@ export default function App() {
       adjustVolume,
       openFiles,
       saveDraft,
+      saveSubtitle,
       toggleTheater: () => setTheater((v) => !v),
       toggleHelp: () => setHelpOpen((v) => !v),
       toggleMenu: () => setMenuOpen((v) => !v),
@@ -380,6 +399,7 @@ export default function App() {
       adjustVolume,
       openFiles,
       saveDraft,
+      saveSubtitle,
       print,
     ],
   )
@@ -517,6 +537,12 @@ export default function App() {
   const menuItems = [
     { label: '파일 열기', hint: 'Ctrl+O', onSelect: openFiles },
     { label: '받아쓰기 전문 저장', hint: 'Ctrl+S', onSelect: saveDraft },
+    {
+      label: '고친 자막 저장 (.srt)',
+      hint: 'Ctrl+Shift+S',
+      onSelect: saveSubtitle,
+      disabled: segments.length === 0,
+    },
     { label: '자막 스크립트 인쇄', hint: 'Ctrl+P', onSelect: print },
     { label: '텍스트창', hint: 'Ctrl+T', onSelect: () => useTextStore.getState().toggleOpen() },
     { label: '단축키 도움말', hint: 'F1', onSelect: () => setHelpOpen(true) },

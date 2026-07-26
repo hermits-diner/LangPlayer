@@ -27,6 +27,8 @@ export interface PlayerCommands {
   openFiles: () => void
   /** Ctrl+S — 받아쓰기 전문 저장 */
   saveDraft: () => void
+  /** Ctrl+Shift+S — 고친 자막을 .srt 파일로 저장 */
+  saveSubtitle: () => void
   /** F9 — 극장 모드 (영상을 키우고 받아쓰기 창을 접는다) */
   toggleTheater: () => void
   /** F1 — 단축키 도움말 */
@@ -157,9 +159,11 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
         return
       }
 
+      // 저장은 두 가지다 — 내가 쓴 받아쓰기(Ctrl+S), 내가 고친 자막(Shift 추가)
       if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
         e.preventDefault()
-        commands.saveDraft()
+        if (e.shiftKey) commands.saveSubtitle()
+        else commands.saveDraft()
         return
       }
 

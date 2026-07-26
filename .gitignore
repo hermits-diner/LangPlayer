@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+dist-ssr/
+build/
+*.local
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Test media (절대 커밋 금지 — 저작권 + 용량)
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.webm
+*.mp3
+*.m4a
+*.wav
+*.flac
+*.ogg
+samples/
+test-media/
+
+# 자막은 샘플만 예외적으로 허용 (tests/fixtures)
+*.srt
+*.vtt
+*.smi
+*.ass
+!tests/fixtures/**/*.srt
+!tests/fixtures/**/*.vtt
+!tests/fixtures/**/*.smi
+!tests/fixtures/**/*.ass
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Coverage / cache
+coverage/
+.vite/
+.eslintcache
+*.tsbuildinfo

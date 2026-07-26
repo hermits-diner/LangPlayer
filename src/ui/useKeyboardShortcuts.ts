@@ -17,23 +17,14 @@ export interface PlayerCommands {
   playContinuous: () => void
   mergeSections: () => void
   splitSection: () => void
-  /** Ctrl+G — 뒤 문장을 하나씩 임시로 붙인다 */
-  groupOneMore: () => void
-  /** Ctrl+Shift+G — 전체를 한 덩어리로 */
-  groupAll: () => void
-  releaseGroup: () => void
   zoomIn: () => void
   zoomOut: () => void
-  zoomToSelection: () => void
   zoomToAll: () => void
   adjustVolume: (delta: number) => void
   /** Ctrl+O — 미디어·자막 파일 열기 */
   openFiles: () => void
   /** Ctrl+S — 받아쓰기 전문 저장 */
   saveDraft: () => void
-  /** Alt+F7 / Alt+F8 — 클립보드 가져오기·내보내기 */
-  clipboardIn: () => void
-  clipboardOut: () => void
   /** F1 — 단축키 도움말 */
   toggleHelp: () => void
   /** F10 — 메뉴 */
@@ -96,16 +87,13 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
 
         case 'F7':
           e.preventDefault()
-          // Alt 조합은 클립보드 가져오기 — 섹션 이동과 겹치지 않게 먼저 본다
-          if (e.altKey) commands.clipboardIn()
-          else if (e.ctrlKey) commands.gotoLast()
+          if (e.ctrlKey) commands.gotoLast()
           else commands.move(1)
           return
 
         case 'F8':
           e.preventDefault()
-          if (e.altKey) commands.clipboardOut()
-          else commands.togglePause()
+          commands.togglePause()
           return
 
         case 'F3':
@@ -167,20 +155,6 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
       }
 
 
-      if (e.ctrlKey && (e.key === 'g' || e.key === 'G')) {
-        e.preventDefault()
-        if (e.shiftKey) commands.groupAll()
-        else commands.groupOneMore()
-        return
-      }
-
-      // 임시 그룹은 Enter로 풀린다 (입력창의 Enter는 채점/다음이라 건드리지 않는다)
-      if (e.key === 'Enter' && !isTyping && store.tempGroup) {
-        e.preventDefault()
-        commands.releaseGroup()
-        return
-      }
-
       if (e.ctrlKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         e.preventDefault()
         store.nudgeOffset(e.key === 'ArrowLeft' ? -0.1 : 0.1)
@@ -202,10 +176,6 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
         case 'NumpadSubtract':
           e.preventDefault()
           commands.zoomOut()
-          return
-        case 'NumpadMultiply':
-          e.preventDefault()
-          commands.zoomToSelection()
           return
         case 'NumpadDivide':
           e.preventDefault()

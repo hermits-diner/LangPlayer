@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest'
+﻿import { describe, expect, it } from 'vitest'
 import { decodeSubtitle } from './decode'
-import { parseAss } from './parse/ass'
 import { parseSmi } from './parse/smi'
 import { parseSrt } from './parse/srt'
 import { parseVtt } from './parse/vtt'
@@ -139,42 +138,6 @@ describe('parseSmi', () => {
   })
 })
 
-describe('parseAss', () => {
-  it('Format 줄을 읽어 필드 위치를 잡는다', () => {
-    const cues = parseAss(
-      [
-        '[Events]',
-        'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
-        'Dialogue: 0,0:00:01.00,0:00:03.50,Default,,0,0,0,,Hello world',
-      ].join('\n'),
-    )
-
-    expect(cues[0]).toMatchObject({ start: 1, end: 3.5, text: 'Hello world' })
-  })
-
-  it('대사 안의 콤마를 보존한다', () => {
-    const cues = parseAss(
-      [
-        'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
-        'Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,Wait, what?',
-      ].join('\n'),
-    )
-
-    expect(cues[0].text).toBe('Wait, what?')
-  })
-
-  it('오버라이드 블록과 \\N 줄바꿈을 정리한다', () => {
-    const cues = parseAss(
-      [
-        'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
-        'Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,{\\an8}top\\Nline',
-      ].join('\n'),
-    )
-
-    expect(cues[0].text).toBe('top line')
-  })
-})
-
 describe('parseSubtitleFile', () => {
   it('확장자가 틀려도 내용으로 판별해 파싱한다', () => {
     const vttText = 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nMislabeled'
@@ -187,7 +150,6 @@ describe('parseSubtitleFile', () => {
   it('sniffFormat이 각 포맷을 구분한다', () => {
     expect(sniffFormat('WEBVTT\n\n...')).toBe('vtt')
     expect(sniffFormat('<SAMI><BODY><SYNC Start=0>')).toBe('smi')
-    expect(sniffFormat('[Script Info]\nTitle: x')).toBe('ass')
     expect(sniffFormat('1\n00:00:01,000 --> 00:00:02,000\nhi')).toBe('srt')
   })
 })

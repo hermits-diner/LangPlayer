@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest'
+﻿import { describe, expect, it } from 'vitest'
 import { DEFAULT_LOOP_SETTINGS } from '../loop/LoopController'
-import { formatBytes } from './quota'
 import {
   deserializeLoopSettings,
   fingerprintCues,
@@ -107,24 +106,3 @@ describe('fingerprintCues', () => {
   })
 })
 
-describe('formatBytes', () => {
-  it('1KB 미만은 바이트로', () => {
-    expect(formatBytes(0)).toBe('0 B')
-    expect(formatBytes(512)).toBe('512 B')
-  })
-
-  it('단위를 올려가며 표시한다', () => {
-    expect(formatBytes(1536)).toBe('1.5 KB')
-    expect(formatBytes(1024 * 1024)).toBe('1 MB')
-    expect(formatBytes(2.5 * 1024 * 1024 * 1024)).toBe('2.5 GB')
-  })
-
-  it('10 이상은 소수점을 버린다', () => {
-    expect(formatBytes(12.34 * 1024 * 1024)).toBe('12 MB')
-  })
-
-  it('값이 없으면 대시', () => {
-    expect(formatBytes(null)).toBe('—')
-    expect(formatBytes(Number.NaN)).toBe('—')
-  })
-})

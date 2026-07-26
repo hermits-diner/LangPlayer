@@ -40,8 +40,6 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     items: [
       { keys: ['F3'], label: '합치기 — 범위를 골라 두었으면 통째로' },
       { keys: ['F4'], label: '나누기 — 문장 단위 → 재생 위치 → 자막 경계 순으로 시도' },
-      { keys: ['Ctrl+G'], label: '뒤 문장을 하나씩 임시로 묶기 (Enter로 해제)' },
-      { keys: ['Ctrl+Shift+G'], label: '전체를 한 덩어리로 묶기' },
       { keys: ['오른쪽 클릭'], label: '문장 개별 선택' },
       { keys: ['Shift+클릭'], label: '범위 선택' },
     ],
@@ -53,7 +51,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ['오른쪽 클릭'], label: '재생 / 정지' },
       { keys: ['Ctrl+오른쪽 클릭'], label: '그 지점에서 나누기' },
       { keys: ['＋', '－'], label: '확대 / 축소 (숫자패드, Ctrl+휠도 동일)' },
-      { keys: ['＊', '／'], label: '선택 구간 맞춤 / 전체 보기 (숫자패드)' },
+      { keys: ['／'], label: '전체 보기 (숫자패드)' },
     ],
   },
   {
@@ -71,7 +69,6 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ['F2'], label: '자막 원문 보기' },
       { keys: ['F9'], label: '정답 대조' },
       { keys: ['F12'], label: '창 크기 (절반 ↔ 전체)' },
-      { keys: ['Alt+F7', 'Alt+F8'], label: '클립보드에서 가져오기 / 내보내기' },
     ],
   },
   {

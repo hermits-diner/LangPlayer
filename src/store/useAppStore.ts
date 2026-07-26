@@ -83,8 +83,6 @@ interface AppState {
 
   /** 다중 선택된 문장 번호들 (오름차순). 연속 재생 대상이 된다 */
   selection: number[]
-  /** 임시로 한 덩어리처럼 다룰 구간 — Ctrl+G. Enter로 풀린다 */
-  tempGroup: { from: number; to: number } | null
   /** 파형 그리기와 자동 맞춤이 함께 쓰는 에너지 포락선 */
   waveform: Float32Array | null
   waveformState: WaveformState
@@ -139,7 +137,6 @@ interface AppState {
   /** 두 지점 사이를 모두 선택 (Shift+클릭, 드래그) */
   selectRange: (from: number, to: number) => void
   clearSelection: () => void
-  setTempGroup: (group: { from: number; to: number } | null) => void
 
   setWaveform: (envelope: Float32Array | null, state: WaveformState) => void
 
@@ -176,7 +173,6 @@ export const useAppStore = create<AppState>()((set, get) => ({
   sync: IDENTITY_SYNC,
 
   selection: [],
-  tempGroup: null,
   waveform: null,
   waveformState: 'idle',
 
@@ -210,8 +206,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
       activeIndex: segments.length > 0 ? 0 : -1,
       sync: IDENTITY_SYNC,
       selection: [],
-      tempGroup: null,
-      inputs: {},
+          inputs: {},
       results: {},
       error: null,
     }),
@@ -243,8 +238,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
         activeIndex: -1,
         sync: IDENTITY_SYNC,
         selection: [],
-        tempGroup: null,
-        waveform: null,
+              waveform: null,
         waveformState: 'idle' as const,
         inputs: {},
         results: {},
@@ -334,9 +328,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set({ selection: Array.from({ length: high - low + 1 }, (_, i) => low + i) })
   },
 
-  clearSelection: () => set({ selection: [], tempGroup: null }),
-
-  setTempGroup: (tempGroup) => set({ tempGroup }),
+  clearSelection: () => set({ selection: [] }),
 
   setWaveform: (waveform, waveformState) => set({ waveform, waveformState }),
 

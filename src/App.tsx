@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LoopController } from './core/loop/LoopController'
 import { HtmlMediaAdapter } from './core/player/HtmlMediaAdapter'
 import type { PlayerAdapter } from './core/player/PlayerAdapter'
@@ -45,7 +45,6 @@ export default function App() {
   const segments = useAppStore((s) => s.segments)
   const activeIndex = useAppStore((s) => s.activeIndex)
   const selection = useAppStore((s) => s.selection)
-  const tempGroup = useAppStore((s) => s.tempGroup)
   const loopSettings = useAppStore((s) => s.loopSettings)
   const error = useAppStore((s) => s.error)
   const notice = useAppStore((s) => s.notice)
@@ -80,19 +79,7 @@ export default function App() {
     if (!segment) return
 
     store.setActiveIndex(index)
-
-    // 임시 그룹이 걸려 있으면 그 범위를 한 덩어리로 재생한다
-    const group = store.tempGroup
-    const target =
-      group && index >= group.from && index <= group.to
-        ? {
-            id: `group-${group.from}-${group.to}`,
-            start: store.segments[group.from].start,
-            end: store.segments[group.to].end,
-          }
-        : { id: segment.id, start: segment.start, end: segment.end }
-
-    loopRef.current?.start(target)
+    loopRef.current?.start({ id: segment.id, start: segment.start, end: segment.end })
   }, [])
 
   const replay = useCallback(() => {
@@ -209,30 +196,6 @@ export default function App() {
     [playSegment],
   )
 
-  const groupOneMore = useCallback(() => {
-    const store = useAppStore.getState()
-    const current = store.tempGroup
-    const from = current?.from ?? store.activeIndex
-    const to = Math.min(store.segments.length - 1, (current?.to ?? store.activeIndex) + 1)
-    if (from < 0) return
-
-    store.setTempGroup({ from, to })
-    store.setNotice(`${from + 1}~${to + 1}번 문장을 한 덩어리로 묶었습니다. Enter로 해제합니다.`)
-  }, [])
-
-  const groupAll = useCallback(() => {
-    const store = useAppStore.getState()
-    if (store.segments.length === 0) return
-    store.setTempGroup({ from: 0, to: store.segments.length - 1 })
-    store.setNotice('전체 문장을 한 덩어리로 묶었습니다. Enter로 해제합니다.')
-  }, [])
-
-  const releaseGroup = useCallback(() => {
-    const store = useAppStore.getState()
-    store.setTempGroup(null)
-    store.setNotice(null)
-  }, [])
-
   // ─── 음파창 조작 ───────────────────────────────────────────────
   const zoomBy = useCallback(
     (factor: number) => {
@@ -246,17 +209,6 @@ export default function App() {
     },
     [totalSec],
   )
-
-  const zoomToSelection = useCallback(() => {
-    const store = useAppStore.getState()
-    const picked = store.selection.length > 0 ? store.selection : [store.activeIndex]
-    const first = store.segments[picked[0]]
-    const last = store.segments[picked[picked.length - 1]]
-    if (!first || !last) return
-
-    const pad = Math.max(0.5, (last.end - first.start) * 0.05)
-    setView({ startSec: Math.max(0, first.start - pad), endSec: last.end + pad })
-  }, [])
 
   const zoomToAll = useCallback(() => {
     setView({ startSec: 0, endSec: Math.max(MIN_VIEW_SEC, totalSec) })
@@ -330,40 +282,6 @@ export default function App() {
     store.setNotice(`${link.download}으로 내려받았습니다.`)
   }, [])
 
-  const clipboardIn = useCallback(async () => {
-    const store = useAppStore.getState()
-    try {
-      const text = await navigator.clipboard.readText()
-      if (!text.trim()) {
-        store.setNotice('클립보드가 비어 있습니다.')
-        return
-      }
-
-      useTextStore.getState().setOpen(true)
-      useTextStore.getState().setTranscript(text)
-      store.setNotice('클립보드에서 받아쓰기를 가져왔습니다.')
-    } catch {
-      store.setError('클립보드를 읽지 못했습니다. 브라우저가 권한을 막았을 수 있습니다.')
-    }
-  }, [])
-
-  const clipboardOut = useCallback(async () => {
-    const store = useAppStore.getState()
-    const transcript = useTextStore.getState().getTranscript()
-
-    if (!transcript.trim()) {
-      store.setNotice('내보낼 내용이 없습니다.')
-      return
-    }
-
-    try {
-      await navigator.clipboard.writeText(transcript)
-      store.setNotice('받아쓰기를 클립보드로 내보냈습니다.')
-    } catch {
-      store.setError('클립보드에 쓰지 못했습니다. 브라우저가 권한을 막았을 수 있습니다.')
-    }
-  }, [])
-
   const selectFromList = useCallback(
     (index: number, modifiers: { shift: boolean; ctrl: boolean }) => {
       const store = useAppStore.getState()
@@ -419,18 +337,12 @@ export default function App() {
       playContinuous,
       mergeSections,
       splitSection,
-      groupOneMore,
-      groupAll,
-      releaseGroup,
       zoomIn: () => zoomBy(0.6),
       zoomOut: () => zoomBy(1 / 0.6),
-      zoomToSelection,
       zoomToAll,
       adjustVolume,
       openFiles,
       saveDraft,
-      clipboardIn: () => void clipboardIn(),
-      clipboardOut: () => void clipboardOut(),
       toggleHelp: () => setHelpOpen((v) => !v),
       toggleMenu: () => setMenuOpen((v) => !v),
       print,
@@ -445,17 +357,11 @@ export default function App() {
       playContinuous,
       mergeSections,
       splitSection,
-      groupOneMore,
-      groupAll,
-      releaseGroup,
       zoomBy,
-      zoomToSelection,
       zoomToAll,
       adjustVolume,
       openFiles,
       saveDraft,
-      clipboardIn,
-      clipboardOut,
       print,
     ],
   )
@@ -621,11 +527,6 @@ export default function App() {
         {selection.length > 0 && (
           <span className="shrink-0 text-xs text-sky-400">{selection.length}개 선택</span>
         )}
-        {tempGroup && (
-          <span className="shrink-0 text-xs text-amber-400">
-            {tempGroup.from + 1}~{tempGroup.to + 1} 묶음 · Enter로 해제
-          </span>
-        )}
         <button
           type="button"
           onClick={() => useTextStore.getState().toggleOpen()}
@@ -661,7 +562,7 @@ export default function App() {
         ref={fileInputRef}
         type="file"
         multiple
-        accept="video/*,audio/*,.srt,.vtt,.smi,.sami,.ass,.ssa"
+        accept="video/*,audio/*,.srt,.vtt,.smi,.sami"
         className="hidden"
         onChange={(e) => {
           void loadFiles([...(e.target.files ?? [])])

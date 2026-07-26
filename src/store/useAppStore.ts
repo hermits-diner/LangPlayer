@@ -2,6 +2,7 @@
 import { DEFAULT_LOOP_SETTINGS, type LoopSettings, type LoopStatus } from '../core/loop/LoopController'
 import { mergeWithNext, splitSegment, transformSegments } from '../core/subtitle/segment'
 import { splitSegmentBySentence } from '../core/subtitle/sentenceSplit'
+import { pieceForCue, type SyncPiece } from '../core/sync/piecewise'
 import { snapSegmentsToSpeech } from '../core/sync/snap'
 import { ENVELOPE_FRAME_SEC } from '../core/sync/audioAnalysis'
 import type { Cue, Segment } from '../core/subtitle/types'
@@ -159,6 +160,13 @@ interface AppState {
   nudgeOffset: (deltaSec: number) => void
   /** 자동 맞춤 결과처럼 배율까지 포함한 보정을 통째로 적용 */
   applySync: (next: SyncTransform) => void
+  /**
+   * 구간별 정렬 결과를 문장에 입힌다.
+   *
+   * 전체 보정 하나로는 표현할 수 없는 어긋남(광고가 빠진 방송본, 감독판)을
+   * 담당한다. 되돌릴 수 있도록 직전 상태를 보관한다. 옮긴 문장 수를 돌려준다.
+   */
+  applySyncPieces: (pieces: readonly SyncPiece[]) => number
   resetSync: () => void
 
   setError: (message: string | null) => void
@@ -445,6 +453,38 @@ export const useAppStore = create<AppState>()((set, get) => ({
         sync: { scale: next.scale, offsetSec: Number(next.offsetSec.toFixed(3)) },
       }
     }),
+
+  applySyncPieces: (pieces) => {
+    const { segments, cues } = get()
+    if (pieces.length === 0 || segments.length === 0) return 0
+
+    // 조각은 자막 번호로 갈라져 있다 (시각으로 가르면 겹치는 구간에서 어긋난다)
+    const cueIndex = new Map(cues.map((cue, index) => [cue.id, index]))
+
+    let moved = 0
+    let lastIndex = 0
+    const next = segments.map((segment) => {
+      // 나누기로 만든 조각은 원본 큐 id가 없다 — 앞 문장이 속한 자리를 따른다
+      const index = cueIndex.get(segment.cueIds[0]) ?? lastIndex
+      lastIndex = index
+
+      const offset = pieceForCue(pieces, index)?.offsetSec ?? 0
+      // 20ms 아래는 들어서 알 수 없다. 괜히 건드려 기록만 흔들 이유가 없다
+      if (Math.abs(offset) < 0.02) return segment
+
+      moved++
+      return {
+        ...segment,
+        start: Math.max(0, segment.start + offset),
+        end: Math.max(0, segment.end + offset),
+      }
+    })
+
+    if (moved === 0) return 0
+
+    set({ segments: next, snapUndo: segments })
+    return moved
+  },
 
   resetSync: () => get().applySync(IDENTITY_SYNC),
 

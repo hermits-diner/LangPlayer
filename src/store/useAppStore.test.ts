@@ -26,6 +26,64 @@ beforeEach(() => {
 
 const times = () => useAppStore.getState().segments.map((s) => [s.start, s.end])
 
+describe('applySyncPieces', () => {
+  const seed = () => {
+    useAppStore.setState({
+      segments: [segment('a', 10, 12), segment('b', 100, 104), segment('c', 200, 203)],
+      cues: [
+        { id: 'a', start: 10, end: 12, text: 'a' },
+        { id: 'b', start: 100, end: 104, text: 'b' },
+        { id: 'c', start: 200, end: 203, text: 'c' },
+      ],
+      snapUndo: null,
+    })
+  }
+
+  it('자막 번호 구간마다 다른 이동값을 건다', () => {
+    seed()
+
+    const moved = useAppStore.getState().applySyncPieces([
+      { fromCue: 0, toCue: 0, offsetSec: 0, confidence: 1 },
+      { fromCue: 1, toCue: 2, offsetSec: 5, confidence: 1 },
+    ])
+
+    expect(moved).toBe(2)
+    expect(times()).toEqual([
+      [10, 12],
+      [105, 109],
+      [205, 208],
+    ])
+  })
+
+  it('되돌릴 수 있게 직전 상태를 남긴다', () => {
+    seed()
+    useAppStore.getState().applySyncPieces([{ fromCue: 0, toCue: 2, offsetSec: 3, confidence: 1 }])
+
+    expect(useAppStore.getState().undoSnap()).toBe(true)
+    expect(times()).toEqual([
+      [10, 12],
+      [100, 104],
+      [200, 203],
+    ])
+  })
+
+  it('들리지 않을 만큼 작은 이동은 아예 건드리지 않는다', () => {
+    seed()
+
+    expect(
+      useAppStore.getState().applySyncPieces([{ fromCue: 0, toCue: 2, offsetSec: 0.01, confidence: 1 }]),
+    ).toBe(0)
+    expect(useAppStore.getState().snapUndo).toBeNull()
+  })
+
+  it('시각이 음수로 내려가지 않는다', () => {
+    seed()
+    useAppStore.getState().applySyncPieces([{ fromCue: 0, toCue: 2, offsetSec: -999, confidence: 1 }])
+
+    expect(times()[0]).toEqual([0, 0])
+  })
+})
+
 describe('applySync', () => {
   it('원본 시각에 선형 변환을 적용한다', () => {
     useAppStore.getState().applySync({ scale: 2, offsetSec: 1 })

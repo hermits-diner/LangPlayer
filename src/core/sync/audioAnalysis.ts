@@ -1,6 +1,7 @@
 import type { SyncResult } from './align'
 import { ANALYSIS_SAMPLE_RATE, decodeToMono } from './audioSource'
 import type { AudioWorkerRequest, AudioWorkerResponse } from './audioWorker'
+import type { SyncPiece } from './piecewise'
 import { FRAME_SEC } from './vad'
 
 /** 포락선 한 칸이 나타내는 시간 — 파형 좌표 계산에 쓴다 */
@@ -66,6 +67,15 @@ export async function analyzeAudio(file: Blob, options: AnalysisOptions = {}): P
   throw new Error('포락선을 만들지 못했습니다.')
 }
 
+export interface AlignmentReport {
+  /** 자막 전체에 거는 배율 + 이동 */
+  result: SyncResult
+  /** 전체 정렬 뒤에도 남는 구간별 어긋남 */
+  pieces: SyncPiece[]
+  /** 서로 다른 이동값 사이의 경계 수 */
+  splitCount: number
+}
+
 /**
  * 이미 만들어 둔 포락선으로 자막을 정렬한다.
  *
@@ -76,13 +86,15 @@ export async function alignWithEnvelope(
   envelope: Float32Array,
   cues: readonly { start: number; end: number }[],
   signal?: AbortSignal,
-): Promise<SyncResult> {
+): Promise<AlignmentReport> {
   const response = await runWorker(
     { type: 'align', envelope, cues: cues.map((c) => ({ start: c.start, end: c.end })) },
     [],
     signal,
   )
 
-  if (response.ok && response.type === 'align') return response.result
+  if (response.ok && response.type === 'align') {
+    return { result: response.result, pieces: response.pieces, splitCount: response.splitCount }
+  }
   throw new Error('자막을 정렬하지 못했습니다.')
 }

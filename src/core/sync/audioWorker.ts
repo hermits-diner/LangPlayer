@@ -1,4 +1,5 @@
 import { alignSubtitles, type SyncResult } from './align'
+import { alignPiecewise, type SyncPiece } from './piecewise'
 import { buildEnvelope, detectSpeech } from './vad'
 
 /**
@@ -16,7 +17,7 @@ export type AudioWorkerRequest =
 
 export type AudioWorkerResponse =
   | { ok: true; type: 'envelope'; envelope: Float32Array }
-  | { ok: true; type: 'align'; result: SyncResult }
+  | { ok: true; type: 'align'; result: SyncResult; pieces: SyncPiece[]; splitCount: number }
   | { ok: false; error: string }
 
 self.onmessage = (event: MessageEvent<AudioWorkerRequest>) => {
@@ -30,8 +31,18 @@ self.onmessage = (event: MessageEvent<AudioWorkerRequest>) => {
       return
     }
 
-    const result = alignSubtitles(detectSpeech(request.envelope), request.cues)
-    self.postMessage({ ok: true, type: 'align', result } satisfies AudioWorkerResponse)
+    // 전체 정렬로 큰 어긋남을 먼저 걷어내고, 남은 어긋남을 구간별로 다시 본다.
+    // 순서가 중요하다 — 통짜로 수십 초 밀린 상태에서는 구간별 탐색 범위(±10초)
+    // 안에 정답이 들어오지 않는다.
+    const speech = detectSpeech(request.envelope)
+    const result = alignSubtitles(speech, request.cues)
+    const corrected = request.cues.map((cue) => ({
+      start: cue.start * result.scale + result.offsetSec,
+      end: cue.end * result.scale + result.offsetSec,
+    }))
+    const { pieces, splitCount } = alignPiecewise(speech, corrected)
+
+    self.postMessage({ ok: true, type: 'align', result, pieces, splitCount } satisfies AudioWorkerResponse)
   } catch (err) {
     self.postMessage({
       ok: false,

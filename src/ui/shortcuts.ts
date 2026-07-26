@@ -60,7 +60,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: '자막 싱크',
     items: [
       { keys: ['Ctrl+←', 'Ctrl+→'], label: '자막을 ±0.1초 옮기기' },
-      { keys: ['자동 맞춤'], label: '음성과 대조해 자동 보정 (로컬 파일 전용)' },
+      { keys: ['자동 맞춤'], label: '음성과 대조해 자동 보정 — 구간이 나뉜 파일도 함께 (로컬 파일 전용)' },
       { keys: ['탭 맞추기'], label: '소리가 시작되는 순간을 직접 찍기' },
     ],
   },

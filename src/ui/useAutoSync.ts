@@ -46,7 +46,7 @@ export function useAutoSync() {
     store.setError(null)
 
     try {
-      const result = await alignWithEnvelope(waveform, cues, controller.signal)
+      const { result, pieces, splitCount } = await alignWithEnvelope(waveform, cues, controller.signal)
       if (controller.signal.aborted) return
 
       if (result.confidence < MIN_CONFIDENCE) {
@@ -58,10 +58,16 @@ export function useAutoSync() {
 
       store.applySync(result)
 
+      // 전체 보정으로 안 잡히는 구간별 어긋남을 이어서 입힌다.
+      // 광고가 빠진 방송본처럼 중간부터 이동값이 달라지는 파일이 여기서 잡힌다.
+      const movedByPiece = useAppStore.getState().applySyncPieces(pieces)
+
       const shift = result.offsetSec - sync.offsetSec
       const drift = result.driftDetected ? ` · 재생속도 차이 보정 ${(result.scale * 100 - 100).toFixed(1)}%` : ''
+      const split =
+        splitCount > 0 && movedByPiece > 0 ? ` · ${splitCount + 1}개 구간을 따로 맞춤` : ''
       store.setNotice(
-        `자동 맞춤 완료 — ${shift >= 0 ? '+' : ''}${shift.toFixed(2)}초 이동${drift} (신뢰도 ${Math.round(result.confidence * 100)}%)`,
+        `자동 맞춤 완료 — ${shift >= 0 ? '+' : ''}${shift.toFixed(2)}초 이동${drift}${split} (신뢰도 ${Math.round(result.confidence * 100)}%)`,
       )
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return

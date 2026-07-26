@@ -162,7 +162,7 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
               title={
                 mediaKind === 'youtube'
                   ? 'YouTube는 오디오에 접근할 수 없어 자동 맞춤을 쓸 수 없습니다'
-                  : '음성과 자막을 대조해 자동으로 맞춥니다'
+                  : '음성과 자막을 대조해 자동으로 맞춥니다. 중간부터 어긋나는 파일은 구간을 나눠 따로 맞춥니다'
               }
               className="chip disabled:cursor-not-allowed disabled:opacity-40"
             >

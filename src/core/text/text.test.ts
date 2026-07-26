@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import type { Segment } from '../subtitle/types'
-import { compareDocuments } from './compare'
 import { fromDocument, toDocument } from './document'
 
 const segment = (id: string, text: string): Segment => ({
@@ -47,41 +46,5 @@ describe('문서 ↔ 문장별 값', () => {
 
   it('문장이 없으면 빈 배열', () => {
     expect(fromDocument([], 'anything')).toEqual([])
-  })
-})
-
-describe('compareDocuments', () => {
-  const reference = 'The quick brown fox\nJumps over the lazy dog'
-
-  it('완전히 같으면 100%', () => {
-    const result = compareDocuments(reference, reference)
-
-    expect(result.accuracy).toBe(1)
-    expect(result.lines).toHaveLength(2)
-  })
-
-  it('줄 번호로 짝을 짓는다', () => {
-    const result = compareDocuments('The quick brown fox\nWrong line entirely', reference)
-
-    expect(result.lines[0].result.accuracy).toBe(1)
-    expect(result.lines[1].result.accuracy).toBeLessThan(0.5)
-  })
-
-  it('빈 줄을 센다', () => {
-    const result = compareDocuments('The quick brown fox\n', reference)
-    expect(result.emptyLines).toBe(1)
-  })
-
-  it('긴 문장이 더 큰 비중을 갖는다', () => {
-    const long = 'one\nalpha bravo charlie delta echo foxtrot golf hotel'
-    // 짧은 줄만 맞히면 전체 정확도는 낮아야 한다
-    const result = compareDocuments('one\n', long)
-
-    expect(result.accuracy).toBeLessThan(0.2)
-  })
-
-  it('양쪽 다 빈 줄은 건너뛴다', () => {
-    const result = compareDocuments('a\n\nb', 'a\n\nb')
-    expect(result.lines).toHaveLength(2)
   })
 })

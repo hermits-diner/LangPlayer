@@ -1,8 +1,6 @@
-import { useMemo, useRef, useState } from 'react'
-import { compareDocuments } from '../core/text/compare'
+﻿import { useMemo, useRef, useState } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { useTextStore } from '../store/useTextStore'
-import { DiffView } from './DiffView'
 
 /**
  * 텍스트창.
@@ -32,11 +30,9 @@ export function TextWindow({ onFocusLine }: TextWindowProps) {
   const open = useTextStore((s) => s.open)
   const lowerOpen = useTextStore((s) => s.lowerOpen)
   const size = useTextStore((s) => s.size)
-  const compare = useTextStore((s) => s.compare)
   const setTranscript = useTextStore((s) => s.setTranscript)
   const toggleLower = useTextStore((s) => s.toggleLower)
   const toggleSize = useTextStore((s) => s.toggleSize)
-  const toggleCompare = useTextStore((s) => s.toggleCompare)
   const setOpen = useTextStore((s) => s.setOpen)
 
   const media = useAppStore((s) => s.media)
@@ -56,11 +52,6 @@ export function TextWindow({ onFocusLine }: TextWindowProps) {
     () => useTextStore.getState().getReference(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [segments],
-  )
-
-  const comparison = useMemo(
-    () => (compare ? compareDocuments(transcript, reference) : null),
-    [compare, transcript, reference],
   )
 
   /**
@@ -123,9 +114,6 @@ export function TextWindow({ onFocusLine }: TextWindowProps) {
 
         <span className="mx-1 h-4 w-px bg-white/10" />
 
-        <button type="button" onClick={toggleCompare} className={`chip ${compare ? 'chip-active' : ''}`}>
-          정답 대조 <kbd className="kbd ml-0.5">F9</kbd>
-        </button>
         <button type="button" onClick={toggleLower} className={`chip ${lowerOpen ? 'chip-active' : ''}`}>
           자막 원문 <kbd className="kbd ml-0.5">F2</kbd>
         </button>
@@ -148,28 +136,31 @@ export function TextWindow({ onFocusLine }: TextWindowProps) {
 
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {comparison ? (
-            <ComparisonView comparison={comparison} />
-          ) : (
-            <textarea
-              value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
-              // 줄바꿈은 그대로 두고(한 줄 = 한 문장), 커서가 옮겨간 줄만 따라간다
-              onKeyUp={(e) => syncCursorLine(e.currentTarget, e.key === 'Enter')}
-              onClick={(e) => syncCursorLine(e.currentTarget, false)}
-              spellCheck={false}
-              placeholder="들리는 대로 받아쓰세요. 여기서 고치면 문장별 받아쓰기에도 그대로 반영됩니다."
-              className="dictation-input h-full w-full resize-none bg-transparent p-3 text-sm text-slate-100 outline-none placeholder:text-slate-600"
-            />
-          )}
+          <textarea
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
+            // 줄바꿈은 그대로 두고(한 줄 = 한 문장), 커서가 옮겨간 줄만 따라간다
+            onKeyUp={(e) => syncCursorLine(e.currentTarget, e.key === 'Enter')}
+            onClick={(e) => syncCursorLine(e.currentTarget, false)}
+            spellCheck={false}
+            placeholder="들리는 대로 받아쓰세요. 여기서 고치면 문장별 받아쓰기에도 그대로 반영됩니다."
+            className="dictation-input h-full w-full resize-none bg-transparent p-3 text-sm text-slate-100 outline-none placeholder:text-slate-600"
+          />
         </div>
 
         {lowerOpen && (
           <div className="flex min-h-0 flex-1 flex-col border-t border-white/10">
-            <div className="px-3 pt-1.5 text-[11px] text-slate-500">자막 원문</div>
-            <pre className="dictation-input min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap px-3 pb-3 text-sm text-slate-400">
-              {reference}
-            </pre>
+            <div className="flex items-baseline gap-2 px-3 pt-1.5">
+              <span className="text-[11px] text-slate-500">자막 원문</span>
+              <span className="text-[10.5px] text-slate-700">고치면 자막이 바뀝니다</span>
+            </div>
+            {/* 자동생성 자막의 오타를 한 화면에서 훑어 잡을 수 있어야 한다 */}
+            <textarea
+              value={reference}
+              onChange={(e) => useTextStore.getState().setReference(e.target.value)}
+              spellCheck={false}
+              className="dictation-input min-h-0 flex-1 resize-none bg-transparent px-3 pb-3 text-sm text-slate-400 outline-none"
+            />
           </div>
         )}
       </div>
@@ -177,33 +168,3 @@ export function TextWindow({ onFocusLine }: TextWindowProps) {
   )
 }
 
-function ComparisonView({ comparison }: { comparison: ReturnType<typeof compareDocuments> }) {
-  const setActiveIndex = useAppStore((s) => s.setActiveIndex)
-
-  return (
-    <div className="space-y-3 p-3">
-      <div className="flex items-center gap-3 text-sm">
-        <span className="text-slate-500">전체 정확도</span>
-        <span className="text-lg font-semibold tabular-nums text-slate-100">
-          {Math.round(comparison.accuracy * 100)}%
-        </span>
-        {comparison.emptyLines > 0 && (
-          <span className="text-xs text-slate-600">아직 안 쓴 줄 {comparison.emptyLines}개</span>
-        )}
-      </div>
-
-      {comparison.lines.map(({ line, result }) => (
-        <div key={line} className="rounded-lg border border-white/10 bg-black/20 p-3">
-          <button
-            type="button"
-            onClick={() => setActiveIndex(line)}
-            className="mb-1.5 text-[11px] text-slate-600 transition hover:text-sky-400"
-          >
-            {line + 1}번 문장
-          </button>
-          <DiffView result={result} />
-        </div>
-      ))}
-    </div>
-  )
-}

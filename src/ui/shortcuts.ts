@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 단축키 목록 — 도움말(F1) 화면의 원본.
  *
  * 키 바인딩 자체는 `useKeyboardShortcuts`에 있고 여기는 설명용이다. 둘을 한
@@ -29,7 +29,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: '받아쓰기',
     items: [
-      { keys: ['Enter'], label: '다음 문장 — 채점이 켜져 있으면 넘어가며 채점' },
+      { keys: ['Enter'], label: '다음 문장' },
       { keys: ['↑', '↓'], label: '앞 / 뒤 문장 (입력 중에도 동작)' },
       { keys: ['Tab'], label: '자막 정답 보기' },
       { keys: ['Esc'], label: '현재 문장 다시 듣기' },
@@ -40,6 +40,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     items: [
       { keys: ['F3'], label: '합치기 — 범위를 골라 두었으면 통째로' },
       { keys: ['F4'], label: '나누기 — 문장 단위 → 재생 위치 → 자막 경계 순으로 시도' },
+      { keys: ['두 번 클릭'], label: '자막 문장 고치기' },
       { keys: ['오른쪽 클릭'], label: '문장 개별 선택' },
       { keys: ['Shift+클릭'], label: '범위 선택' },
     ],
@@ -67,7 +68,6 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     items: [
       { keys: ['Ctrl+T'], label: '텍스트창 열기 / 닫기' },
       { keys: ['F2'], label: '자막 원문 보기' },
-      { keys: ['F9'], label: '정답 대조' },
       { keys: ['F12'], label: '창 크기 (절반 ↔ 전체)' },
     ],
   },

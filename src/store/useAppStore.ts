@@ -1,6 +1,4 @@
 ﻿import { create } from 'zustand'
-import type { DictationResult } from '../core/dictation/score'
-import { scoreDictation } from '../core/dictation/score'
 import { DEFAULT_LOOP_SETTINGS, type LoopSettings, type LoopStatus } from '../core/loop/LoopController'
 import { mergeWithNext, splitSegment, transformSegments } from '../core/subtitle/segment'
 import { splitSegmentBySentence } from '../core/subtitle/sentenceSplit'
@@ -40,7 +38,6 @@ export interface RestoredSession {
   sync: SyncTransform
   currentTime: number
   inputs: Record<string, string>
-  results: Record<string, DictationResult>
 }
 
 export interface SubtitleInfo {
@@ -103,9 +100,7 @@ interface AppState {
    * 끄면 Enter가 곧장 다음 문장으로 넘어가고 점수 표시도 사라진다.
    * 이미 채점한 기록은 지우지 않으므로 다시 켜면 그대로 돌아온다.
    */
-  gradingEnabled: boolean
   inputs: Record<string, string>
-  results: Record<string, DictationResult>
 
   error: string | null
   notice: string | null
@@ -117,7 +112,6 @@ interface AppState {
     loopSettings: LoopSettings
     hideSubtitles: boolean
     autoAdvance: boolean
-    gradingEnabled: boolean
   }) => void
   clearAll: () => void
 
@@ -130,10 +124,7 @@ interface AppState {
 
   toggleHideSubtitles: () => void
   toggleAutoAdvance: () => void
-  toggleGrading: () => void
   setInput: (key: string, text: string) => void
-  gradeActive: () => void
-  clearActiveResult: () => void
 
   /** 개별 선택 토글 (오른쪽 클릭) */
   toggleSelection: (index: number) => void
@@ -142,6 +133,15 @@ interface AppState {
   clearSelection: () => void
 
   setWaveform: (envelope: Float32Array | null, state: WaveformState) => void
+
+  /**
+   * 자막 문장을 고친다.
+   *
+   * 자동생성 자막에는 오타가 흔하고, 재생 위치로 나눌 때 글자 수 비율로 가른
+   * 텍스트도 어긋난다. 정답을 눈으로 대조하는 도구이므로 정답이 틀려 있으면
+   * 곤란하다.
+   */
+  setSegmentText: (index: number, text: string) => void
 
   mergeActiveWithNext: () => void
   /** from~to 구간을 문장 하나로 접는다 (양끝 포함) */
@@ -192,9 +192,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
   hideSubtitles: true,
   autoAdvance: false,
-  gradingEnabled: true,
   inputs: {},
-  results: {},
 
   error: null,
   notice: null,
@@ -217,7 +215,6 @@ export const useAppStore = create<AppState>()((set, get) => ({
       sync: IDENTITY_SYNC,
       selection: [],
           inputs: {},
-      results: {},
       error: null,
     }),
 
@@ -229,11 +226,10 @@ export const useAppStore = create<AppState>()((set, get) => ({
       sync: session.sync,
       currentTime: session.currentTime,
       inputs: session.inputs,
-      results: session.results,
     }),
 
-  applyStoredSettings: ({ loopSettings, hideSubtitles, autoAdvance, gradingEnabled }) =>
-    set({ loopSettings, hideSubtitles, autoAdvance, gradingEnabled }),
+  applyStoredSettings: ({ loopSettings, hideSubtitles, autoAdvance }) =>
+    set({ loopSettings, hideSubtitles, autoAdvance }),
 
   clearAll: () =>
     set((state) => {
@@ -252,7 +248,6 @@ export const useAppStore = create<AppState>()((set, get) => ({
         waveformState: 'idle' as const,
         snapUndo: null,
         inputs: {},
-        results: {},
         loopStatus: IDLE_STATUS,
         currentTime: 0,
         error: null,
@@ -283,36 +278,25 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
   toggleAutoAdvance: () => set((state) => ({ autoAdvance: !state.autoAdvance })),
 
-  toggleGrading: () => set((state) => ({ gradingEnabled: !state.gradingEnabled })),
-
   setInput: (key, text) => set((state) => ({ inputs: { ...state.inputs, [key]: text } })),
-
-  gradeActive: () => {
-    const { segments, activeIndex, inputs } = get()
-    const segment = segments[activeIndex]
-    if (!segment) return
-
-    const key = segmentKey(segment)
-    const result = scoreDictation(segment.text, inputs[key] ?? '')
-    set((state) => ({ results: { ...state.results, [key]: result } }))
-  },
-
-  clearActiveResult: () => {
-    const { segments, activeIndex } = get()
-    const segment = segments[activeIndex]
-    if (!segment) return
-
-    const key = segmentKey(segment)
-    set((state) => {
-      const { [key]: _removed, ...rest } = state.results
-      return { results: rest }
-    })
-  },
 
   mergeActiveWithNext: () => {
     const { segments, activeIndex } = get()
     if (activeIndex < 0 || activeIndex >= segments.length - 1) return
     set({ segments: mergeWithNext(segments, activeIndex), selection: [] })
+  },
+
+  setSegmentText: (index, text) => {
+    const { segments } = get()
+    const target = segments[index]
+
+    // 문장 하나가 한 줄이라는 규칙을 지킨다 — 줄바꿈은 공백으로 접는다
+    const trimmed = text.replace(/\s*\n\s*/g, ' ').trim()
+    if (!target || trimmed === target.text) return
+
+    const next = [...segments]
+    next[index] = { ...target, text: trimmed }
+    set({ segments: next })
   },
 
   mergeRange: (from, to) => {

@@ -453,11 +453,6 @@ export default function App() {
     if (totalSec > 0) setView({ startSec: 0, endSec: totalSec })
   }, [totalSec])
 
-  // 자료가 바뀌면 대조 모드는 꺼 둔다 — 앞 자료의 결과를 그대로 보여주지 않도록
-  useEffect(() => {
-    useTextStore.getState().reset()
-  }, [media, subtitle])
-
   // 알림은 알렸으면 물러나야 한다. 오류는 사용자가 조치할 때까지 남긴다
   useEffect(() => {
     if (!notice) return

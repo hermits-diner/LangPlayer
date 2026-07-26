@@ -1,13 +1,12 @@
-import Dexie, { type Table } from 'dexie'
+﻿import Dexie, { type Table } from 'dexie'
 import type { Cue, Segment } from '../subtitle/types'
 import type { StoredLoopSettings } from './serialize'
 
 /**
  * 학습 기록 저장소.
  *
- * 채점 결과는 저장하지 않는다. 입력 문자열과 "채점했는지" 여부만 남기고
- * 불러올 때 다시 채점한다. 채점은 순수 함수라 결과가 동일하고, 채점 로직을
- * 고쳐도 기록이 낡지 않으며, 저장 용량도 훨씬 작다.
+ * 미디어는 저장하지 않는다. 자막·문장 경계·받아쓴 글만 남기므로 영화 한 편을
+ * 전부 학습해도 1 MB 남짓이다.
  */
 
 export interface SessionRow {
@@ -40,8 +39,6 @@ export interface SessionRow {
 
   /** 문장별 받아쓰기 입력 (키는 segmentKey) */
   inputs: Record<string, string>
-  /** 실제로 채점까지 마친 문장들 */
-  graded: string[]
 }
 
 export interface SettingsRow {
@@ -49,8 +46,6 @@ export interface SettingsRow {
   loopSettings: StoredLoopSettings
   hideSubtitles: boolean
   autoAdvance: boolean
-  /** 나중에 생긴 설정이라 옛 기록에는 없다 — 없으면 켜진 것으로 본다 */
-  gradingEnabled?: boolean
 }
 
 class LangPlayerDatabase extends Dexie {

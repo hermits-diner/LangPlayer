@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+﻿import { useEffect } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { useTextStore } from '../store/useTextStore'
 
@@ -115,11 +115,6 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
         case 'F2':
           e.preventDefault()
           useTextStore.getState().toggleLower()
-          return
-
-        case 'F9':
-          e.preventDefault()
-          useTextStore.getState().toggleCompare()
           return
 
         case 'F12':

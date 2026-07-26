@@ -17,35 +17,29 @@ interface TextState {
   /** 아래창(정답 스크립트) 열림 — F2 */
   lowerOpen: boolean
   size: TextWindowSize
-  /** 비교 모드 — F9 */
-  compare: boolean
 
   toggleOpen: () => void
   setOpen: (open: boolean) => void
   toggleLower: () => void
   toggleSize: () => void
-  toggleCompare: () => void
 
   /** 받아쓰기 전문 — 문장 하나가 한 줄 */
   getTranscript: () => string
   setTranscript: (document: string) => void
-  /** 정답 스크립트 — 자막을 그대로 이어 붙인 것 */
+  /** 자막 원문 — 자막을 그대로 이어 붙인 것. 여기서 고치면 자막이 바뀐다 */
   getReference: () => string
-
-  reset: () => void
+  setReference: (document: string) => void
 }
 
 export const useTextStore = create<TextState>()((set) => ({
   open: false,
   lowerOpen: false,
   size: 'half',
-  compare: false,
 
   toggleOpen: () => set((state) => ({ open: !state.open })),
   setOpen: (open) => set({ open }),
   toggleLower: () => set((state) => ({ lowerOpen: !state.lowerOpen })),
   toggleSize: () => set((state) => ({ size: state.size === 'half' ? 'full' : 'half' })),
-  toggleCompare: () => set((state) => ({ compare: !state.compare })),
 
   getTranscript: () => {
     const { segments, inputs } = useAppStore.getState()
@@ -69,5 +63,10 @@ export const useTextStore = create<TextState>()((set) => ({
     return toDocument(segments, (segment) => segment.text)
   },
 
-  reset: () => set({ compare: false }),
+  /** 자막 전문을 한꺼번에 고친다 — 자동생성 자막의 오타를 훑어 잡을 때 쓴다 */
+  setReference: (document) => {
+    const store = useAppStore.getState()
+    const values = fromDocument(store.segments, document)
+    values.forEach((text, index) => store.setSegmentText(index, text))
+  },
 }))

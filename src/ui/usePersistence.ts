@@ -1,6 +1,4 @@
 ﻿import { useEffect, useRef } from 'react'
-import { scoreDictation } from '../core/dictation/score'
-import type { DictationResult } from '../core/dictation/score'
 import {
   loadSession,
   loadSettings,
@@ -50,7 +48,6 @@ export function usePersistence() {
         loopSettings: deserializeLoopSettings(row.loopSettings),
         hideSubtitles: row.hideSubtitles,
         autoAdvance: row.autoAdvance,
-        gradingEnabled: row.gradingEnabled ?? true,
       })
     })
 
@@ -63,7 +60,6 @@ export function usePersistence() {
   const loopSettings = useAppStore((s) => s.loopSettings)
   const hideSubtitles = useAppStore((s) => s.hideSubtitles)
   const autoAdvance = useAppStore((s) => s.autoAdvance)
-  const gradingEnabled = useAppStore((s) => s.gradingEnabled)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -72,12 +68,11 @@ export function usePersistence() {
         loopSettings: serializeLoopSettings(loopSettings),
         hideSubtitles,
         autoAdvance,
-        gradingEnabled,
       })
     }, SAVE_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [loopSettings, hideSubtitles, autoAdvance, gradingEnabled])
+  }, [loopSettings, hideSubtitles, autoAdvance])
 
   // ─── 세션 복원 ──────────────────────────────────────────────────
   useEffect(() => {
@@ -90,8 +85,6 @@ export function usePersistence() {
       if (cancelled) return
 
       if (row && matchesLoadedSubtitle(row)) {
-        const results = rescore(row)
-
         useAppStore.getState().restoreSession({
           cues: row.cues,
           segments: row.segments,
@@ -99,14 +92,12 @@ export function usePersistence() {
           sync: { scale: row.scale ?? 1, offsetSec: row.offsetSec ?? 0 },
           currentTime: row.currentTime,
           inputs: row.inputs,
-          results,
         })
 
-        const done = Object.keys(results).length
-        const average = done > 0 ? ` · 평균 ${Math.round(averageAccuracy(results) * 100)}%` : ''
+        const written = Object.values(row.inputs).filter((text) => text.trim()).length
         useAppStore
           .getState()
-          .setNotice(`이어서 학습합니다 — ${row.segments.length}문장 중 ${done}문장 완료${average}`)
+          .setNotice(`이어서 학습합니다 — ${row.segments.length}문장 중 ${written}문장 받아씀`)
       }
 
       restoredKey.current = sessionKey
@@ -123,7 +114,6 @@ export function usePersistence() {
   const activeIndex = useAppStore((s) => s.activeIndex)
   const sync = useAppStore((s) => s.sync)
   const inputs = useAppStore((s) => s.inputs)
-  const results = useAppStore((s) => s.results)
 
   useEffect(() => {
     if (!sessionKey || !media || !subtitle) return
@@ -149,7 +139,6 @@ export function usePersistence() {
         cuesFingerprint: fingerprintCues(cues),
         segments,
         inputs,
-        graded: Object.keys(results),
       }
 
       void saveSession(row).then(() => {
@@ -162,7 +151,7 @@ export function usePersistence() {
     }, SAVE_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [sessionKey, media, subtitle, cues, segments, activeIndex, sync, inputs, results])
+  }, [sessionKey, media, subtitle, cues, segments, activeIndex, sync, inputs])
 }
 
 /**
@@ -182,25 +171,3 @@ function matchesLoadedSubtitle(row: SessionRow): boolean {
   return row.cuesFingerprint === fingerprintCues(loaded)
 }
 
-/**
- * 채점 결과는 저장하지 않고 입력에서 다시 계산한다.
- * 채점이 순수 함수라 결과가 같고, 채점 로직을 고쳐도 기록이 낡지 않는다.
- */
-function rescore(row: SessionRow): Record<string, DictationResult> {
-  const byKey = new Map(row.segments.map((s) => [s.cueIds[0] ?? s.id, s.text]))
-  const results: Record<string, DictationResult> = {}
-
-  for (const key of row.graded) {
-    const reference = byKey.get(key)
-    if (reference === undefined) continue // 세그먼트 경계가 바뀌어 사라진 기록
-    results[key] = scoreDictation(reference, row.inputs[key] ?? '')
-  }
-
-  return results
-}
-
-function averageAccuracy(results: Record<string, DictationResult>): number {
-  const values = Object.values(results)
-  if (values.length === 0) return 0
-  return values.reduce((sum, r) => sum + r.accuracy, 0) / values.length
-}

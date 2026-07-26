@@ -3,8 +3,12 @@ import { LoopController } from './core/loop/LoopController'
 import { HtmlMediaAdapter } from './core/player/HtmlMediaAdapter'
 import type { PlayerAdapter } from './core/player/PlayerAdapter'
 import { YouTubeAdapter } from './core/player/YouTubeAdapter'
+import { TEXT_KINDS } from './core/text/types'
 import { canSplitAt, useAppStore } from './store/useAppStore'
+import { useTextStore } from './store/useTextStore'
 import { DictationPane } from './ui/DictationPane'
+import { TextWindow } from './ui/TextWindow'
+import { useWorkspace } from './ui/useWorkspace'
 import { DropZone } from './ui/DropZone'
 import { LoopControls } from './ui/LoopControls'
 import { PlayerPane } from './ui/PlayerPane'
@@ -47,6 +51,7 @@ export default function App() {
   const loopRef = useRef<LoopController | null>(null)
   const adapterRef = useRef<PlayerAdapter | null>(null)
   const setupToken = useRef(0)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [isDragging, setDragging] = useState(false)
   const [tapMode, setTapMode] = useState(false)
@@ -55,6 +60,7 @@ export default function App() {
   const [view, setView] = useState<WaveformView>({ startSec: 0, endSec: 60 })
 
   const { loadFiles } = useLoadFiles()
+  const workspace = useWorkspace()
   useWaveform()
   usePersistence()
 
@@ -243,6 +249,47 @@ export default function App() {
     [playSegment],
   )
 
+  // ─── 텍스트창 연동 ─────────────────────────────────────────────
+  const openFiles = useCallback(() => fileInputRef.current?.click(), [])
+
+  const saveDraft = useCallback(() => void workspace.save('draft'), [workspace])
+
+  const clipboardIn = useCallback(async () => {
+    const store = useAppStore.getState()
+    try {
+      const text = await navigator.clipboard.readText()
+      if (!text.trim()) {
+        store.setNotice('클립보드가 비어 있습니다.')
+        return
+      }
+
+      const textStore = useTextStore.getState()
+      textStore.setOpen(true)
+      textStore.setText(textStore.upperKind, text)
+      store.setNotice(`클립보드에서 ${TEXT_KINDS[textStore.upperKind].label}을 가져왔습니다.`)
+    } catch {
+      store.setError('클립보드를 읽지 못했습니다. 브라우저가 권한을 막았을 수 있습니다.')
+    }
+  }, [])
+
+  const clipboardOut = useCallback(async () => {
+    const store = useAppStore.getState()
+    const textStore = useTextStore.getState()
+    const content = textStore.getText(textStore.upperKind)
+
+    if (!content.trim()) {
+      store.setNotice('내보낼 내용이 없습니다.')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(content)
+      store.setNotice(`${TEXT_KINDS[textStore.upperKind].label}을 클립보드로 내보냈습니다.`)
+    } catch {
+      store.setError('클립보드에 쓰지 못했습니다. 브라우저가 권한을 막았을 수 있습니다.')
+    }
+  }, [])
+
   const selectFromList = useCallback(
     (index: number, modifiers: { shift: boolean; ctrl: boolean }) => {
       const store = useAppStore.getState()
@@ -306,6 +353,10 @@ export default function App() {
       zoomToSelection,
       zoomToAll,
       adjustVolume,
+      openFiles,
+      saveDraft,
+      clipboardIn: () => void clipboardIn(),
+      clipboardOut: () => void clipboardOut(),
     }),
     [
       replay,
@@ -324,6 +375,10 @@ export default function App() {
       zoomToSelection,
       zoomToAll,
       adjustVolume,
+      openFiles,
+      saveDraft,
+      clipboardIn,
+      clipboardOut,
     ],
   )
 
@@ -414,6 +469,14 @@ export default function App() {
     if (totalSec > 0) setView({ startSec: 0, endSec: totalSec })
   }, [totalSec])
 
+  // 자료가 바뀌면 텍스트창 문서도 갈아 끼운다.
+  // 앞 영상의 패치·약형드랩이 따라오면 엉뚱한 정답으로 채점하게 된다.
+  useEffect(() => {
+    const text = useTextStore.getState()
+    text.reset()
+    if (text.open) text.seedPatchFromSubtitle()
+  }, [media, subtitle])
+
   // ─── 전역 드래그앤드롭 ──────────────────────────────────────────
   useEffect(() => {
     const onDragOver = (e: DragEvent) => {
@@ -483,8 +546,20 @@ export default function App() {
         </div>
       )}
 
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="video/*,audio/*,.srt,.vtt,.smi,.sami,.ass,.ssa"
+        className="hidden"
+        onChange={(e) => {
+          void loadFiles([...(e.target.files ?? [])])
+          e.target.value = ''
+        }}
+      />
+
       <main className="flex min-h-0 flex-1">
-        <section className="flex min-w-0 flex-1 flex-col">
+        <section className="relative flex min-w-0 flex-1 flex-col">
           <PlayerPane mediaRef={mediaRef} youtubeRef={youtubeRef} />
 
           <div className="h-24 shrink-0 border-y border-white/10">
@@ -509,6 +584,8 @@ export default function App() {
           <div className="min-h-0 flex-1 overflow-y-auto">
             <DictationPane onReplay={replay} onNext={() => move(1)} />
           </div>
+
+          <TextWindow />
         </section>
 
         <aside className="flex w-96 shrink-0 flex-col border-l border-white/10">

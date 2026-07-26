@@ -1,3 +1,4 @@
+import { extensionOf, isOftenUnsupported } from '../core/files/match'
 import { useAppStore } from '../store/useAppStore'
 
 interface Props {
@@ -61,7 +62,11 @@ export function PlayerPane({ mediaRef, youtubeRef }: Props) {
       playsInline
       className={`w-full bg-black object-contain ${PLAYER_HEIGHT}`}
       onError={() =>
-        setError('이 영상을 브라우저에서 재생할 수 없습니다. MP4(H.264/AAC)로 변환한 뒤 다시 시도해 주세요.')
+        setError(
+          isOftenUnsupported(media.name)
+            ? `이 영상을 재생하지 못했습니다. ${extensionOf(media.name).toUpperCase()}는 브라우저·OS 코덱에 따라 갈리는 형식입니다. MP4(H.264/AAC)로 변환하면 확실합니다.`
+            : '이 영상을 재생하지 못했습니다. 파일이 손상되었거나 지원하지 않는 코덱일 수 있습니다.',
+        )
       }
     />
   )

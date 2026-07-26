@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { classifyFiles, isPlayableInBrowser, mediaKindOf } from './match'
+import { classifyFiles, isOftenUnsupported, mediaKindOf } from './match'
 
 const file = (name: string) => new File([''], name)
 
@@ -11,11 +11,11 @@ describe('mediaKindOf', () => {
   })
 })
 
-describe('isPlayableInBrowser', () => {
-  it('MKV·AVI는 재생 불가로 표시한다', () => {
-    expect(isPlayableInBrowser('movie.mkv')).toBe(false)
-    expect(isPlayableInBrowser('movie.avi')).toBe(false)
-    expect(isPlayableInBrowser('movie.mp4')).toBe(true)
+describe('isOftenUnsupported', () => {
+  it('코덱에 따라 갈리는 형식을 알려준다', () => {
+    expect(isOftenUnsupported('movie.mkv')).toBe(true)
+    expect(isOftenUnsupported('movie.avi')).toBe(true)
+    expect(isOftenUnsupported('movie.mp4')).toBe(false)
   })
 })
 
@@ -50,9 +50,11 @@ describe('classifyFiles', () => {
     expect(result.subtitle?.name).toBe('ep12.vtt')
   })
 
-  it('재생 불가 형식이면 경고를 낸다', () => {
+  it('MKV라고 미리 막지 않는다 — OS 코덱에 따라 잘 재생되기도 한다', () => {
     const result = classifyFiles([file('movie.mkv')])
-    expect(result.warning).toContain('MKV')
+
+    expect(result.media?.name).toBe('movie.mkv')
+    expect(result.warning).toBeNull()
   })
 
   it('자막만 떨어뜨려도 받는다 (영상 교체용)', () => {

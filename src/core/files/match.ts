@@ -11,8 +11,15 @@ const VIDEO_EXT = ['mp4', 'm4v', 'webm', 'ogv', 'mov', 'mkv', 'avi', 'wmv', 'flv
 const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'wav', 'flac', 'ogg', 'oga', 'opus', 'wma']
 const SUBTITLE_EXT = ['srt', 'vtt', 'smi', 'sami', 'ass', 'ssa']
 
-/** 브라우저가 디코딩할 수 없는 컨테이너/코덱 — 미리 걸러 안내한다 */
-const UNSUPPORTED_EXT = ['mkv', 'avi', 'wmv', 'flv', 'ts', 'mpg', 'mpeg', 'wma']
+/**
+ * 브라우저가 흔히 못 여는 컨테이너.
+ *
+ * 다만 이걸로 **미리 막지는 않는다**. OS에 코덱이 깔려 있으면 Chrome이 MKV나
+ * HEVC를 그냥 재생하는 경우가 있어서, 확장자만 보고 "재생 불가"라고 단정하면
+ * 잘 되는 파일을 못 쓰게 만든다. 판단은 실제 재생 결과(`error` 이벤트)에 맡기고
+ * 이 목록은 안내 문구를 고를 때만 참고한다.
+ */
+const OFTEN_UNSUPPORTED_EXT = ['mkv', 'avi', 'wmv', 'flv', 'ts', 'mpg', 'mpeg', 'wma']
 
 export function extensionOf(filename: string): string {
   const dot = filename.lastIndexOf('.')
@@ -35,8 +42,9 @@ export function mediaKindOf(filename: string): MediaKind | null {
   return null
 }
 
-export function isPlayableInBrowser(filename: string): boolean {
-  return !UNSUPPORTED_EXT.includes(extensionOf(filename))
+/** 재생이 실패했을 때, 코덱 탓일 가능성이 높은 형식인지 */
+export function isOftenUnsupported(filename: string): boolean {
+  return OFTEN_UNSUPPORTED_EXT.includes(extensionOf(filename))
 }
 
 export interface ClassifiedFiles {
@@ -58,12 +66,11 @@ export function classifyFiles(files: File[]): ClassifiedFiles {
   const media = mediaFiles[0] ?? null
   const subtitle = media ? pickSubtitleFor(media, subtitleFiles) : (subtitleFiles[0] ?? null)
 
-  let warning: string | null = null
-  if (media && !isPlayableInBrowser(media.name)) {
-    warning = `${extensionOf(media.name).toUpperCase()} 형식은 브라우저에서 재생할 수 없습니다. MP4(H.264)로 변환한 뒤 사용해 주세요.`
-  } else if (!media && mediaFiles.length === 0 && subtitleFiles.length === 0 && files.length > 0) {
-    warning = '인식할 수 있는 미디어나 자막 파일이 없습니다.'
-  }
+  // 재생 가능 여부는 미리 단정하지 않는다 — 실제로 열어 보고 판단한다
+  const warning =
+    !media && mediaFiles.length === 0 && subtitleFiles.length === 0 && files.length > 0
+      ? '인식할 수 있는 미디어나 자막 파일이 없습니다.'
+      : null
 
   return { media, subtitle, warning }
 }

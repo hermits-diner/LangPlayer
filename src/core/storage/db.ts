@@ -61,6 +61,10 @@ class LangPlayerDatabase extends Dexie {
       sessions: 'key, mediaKey, updatedAt',
       settings: 'id',
     })
+    // 작업 폴더 핸들 보관용 (File System Access API)
+    this.version(2).stores({
+      handles: 'id',
+    })
   }
 }
 

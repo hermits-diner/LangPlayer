@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useAppStore } from '../store/useAppStore'
+import { useTextStore } from '../store/useTextStore'
 
 const RATE_STEPS = [0.6, 0.75, 0.9, 1, 1.25]
 
@@ -26,6 +27,13 @@ export interface PlayerCommands {
   zoomToSelection: () => void
   zoomToAll: () => void
   adjustVolume: (delta: number) => void
+  /** Ctrl+O — 미디어·자막 파일 열기 */
+  openFiles: () => void
+  /** Ctrl+S — 받아쓰기 전문 저장 */
+  saveDraft: () => void
+  /** Alt+F7 / Alt+F8 — 클립보드 가져오기·내보내기 */
+  clipboardIn: () => void
+  clipboardOut: () => void
 }
 
 /**
@@ -65,13 +73,16 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
 
         case 'F7':
           e.preventDefault()
-          if (e.ctrlKey) commands.gotoFirst()
+          // Alt 조합은 클립보드 가져오기 — 섹션 이동과 겹치지 않게 먼저 본다
+          if (e.altKey) commands.clipboardIn()
+          else if (e.ctrlKey) commands.gotoFirst()
           else commands.move(-1)
           return
 
         case 'F8':
           e.preventDefault()
-          if (e.ctrlKey) commands.gotoLast()
+          if (e.altKey) commands.clipboardOut()
+          else if (e.ctrlKey) commands.gotoLast()
           else commands.move(1)
           return
 
@@ -89,7 +100,53 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
           e.preventDefault()
           commands.playContinuous()
           return
+
+        // ── 텍스트창 ──────────────────────────────────────────────
+        case 'F2':
+          e.preventDefault()
+          useTextStore.getState().toggleLower()
+          return
+
+        case 'F9':
+          e.preventDefault()
+          useTextStore.getState().toggleCompare()
+          return
+
+        case 'F12':
+          // 브라우저가 개발자 도구로 먼저 가로챌 수 있다 — 막지 못하면 그쪽이 이긴다
+          e.preventDefault()
+          useTextStore.getState().toggleSize()
+          return
       }
+
+      // 텍스트창 열고 닫기
+      if (e.ctrlKey && (e.key === 't' || e.key === 'T')) {
+        e.preventDefault()
+        useTextStore.getState().toggleOpen()
+        return
+      }
+
+      if (e.ctrlKey && (e.key === 'o' || e.key === 'O')) {
+        e.preventDefault()
+        commands.openFiles()
+        return
+      }
+
+      if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault()
+        commands.saveDraft()
+        return
+      }
+
+      // Alt 조합 — 약형드랩 생성과 클립보드
+      if (e.altKey && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault()
+        if (!useTextStore.getState().generateGapped()) {
+          store.setError('먼저 패치를 채워 주세요 (텍스트창 아래창, F2).')
+        }
+        return
+      }
+
 
       if (e.ctrlKey && (e.key === 'g' || e.key === 'G')) {
         e.preventDefault()

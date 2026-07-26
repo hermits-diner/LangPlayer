@@ -27,6 +27,8 @@ export interface PlayerCommands {
   openFiles: () => void
   /** Ctrl+S — 받아쓰기 전문 저장 */
   saveDraft: () => void
+  /** F9 — 극장 모드 (영상을 키우고 받아쓰기 창을 접는다) */
+  toggleTheater: () => void
   /** F1 — 단축키 도움말 */
   toggleHelp: () => void
   /** F10 — 메뉴 */
@@ -122,6 +124,11 @@ export function useKeyboardShortcuts(commands: PlayerCommands) {
         case 'PageUp':
           e.preventDefault()
           commands.scrollSegments(-1)
+          return
+
+        case 'F9':
+          e.preventDefault()
+          commands.toggleTheater()
           return
 
         // ── 텍스트창 ──────────────────────────────────────────────

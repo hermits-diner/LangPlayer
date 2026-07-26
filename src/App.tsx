@@ -62,6 +62,8 @@ export default function App() {
   const [tapMode, setTapMode] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  /** 극장 모드 — 영상을 키우고 받아쓰기 창을 접는다 */
+  const [theater, setTheater] = useState(false)
   const [volume, setVolumeState] = useState(1)
   const [durationSec, setDurationSec] = useState(0)
   const [view, setView] = useState<WaveformView>({ startSec: 0, endSec: 60 })
@@ -357,6 +359,7 @@ export default function App() {
       adjustVolume,
       openFiles,
       saveDraft,
+      toggleTheater: () => setTheater((v) => !v),
       toggleHelp: () => setHelpOpen((v) => !v),
       toggleMenu: () => setMenuOpen((v) => !v),
       print,
@@ -539,8 +542,17 @@ export default function App() {
         )}
         <button
           type="button"
+          onClick={() => setTheater((v) => !v)}
+          className={`ml-auto chip ${theater ? 'chip-active' : ''}`}
+          title="영상을 크게 보고 받아쓰기 창을 접습니다"
+        >
+          극장 모드 <kbd className="kbd ml-0.5">F9</kbd>
+        </button>
+
+        <button
+          type="button"
           onClick={() => useTextStore.getState().toggleOpen()}
-          className={`ml-auto chip ${textWindowOpen ? 'chip-active' : ''}`}
+          className={`chip ${textWindowOpen ? 'chip-active' : ''}`}
           title="받아쓰기 전체를 한 문서로 놓고 고칩니다 (Ctrl+T)"
         >
           텍스트창 <kbd className="kbd ml-0.5">Ctrl+T</kbd>
@@ -582,7 +594,7 @@ export default function App() {
 
       <main className="flex min-h-0 flex-1">
         <section className="relative flex min-w-0 flex-1 flex-col">
-          <PlayerPane mediaRef={mediaRef} youtubeRef={youtubeRef} />
+          <PlayerPane mediaRef={mediaRef} youtubeRef={youtubeRef} theater={theater} />
 
           <div className="h-24 shrink-0 border-y border-white/10">
             <Waveform
@@ -603,14 +615,26 @@ export default function App() {
             tapMode={tapMode}
           />
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <DictationPane onReplay={replay} onNext={() => move(1)} onPrev={() => move(-1)} />
-          </div>
+          {/* 극장 모드에서는 받아쓰기 창을 접어 그 높이를 영상에 넘긴다 */}
+          {!theater && (
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <DictationPane onReplay={replay} onNext={() => move(1)} onPrev={() => move(-1)} />
+            </div>
+          )}
 
           <TextWindow onFocusLine={focusLine} />
         </section>
 
-        <aside className="flex w-96 shrink-0 flex-col border-l border-white/10">
+        {/*
+          극장 모드에서는 목록도 좁힌다. 세로를 다 내줘도 16:9 영상은 결국 가로에
+          걸리므로, 폭을 돌려주지 않으면 영상이 별로 커지지 않는다. 그렇다고
+          목록을 없애지는 않는다 — 문장을 골라 반복하는 게 이 앱의 본체다.
+        */}
+        <aside
+          className={`flex shrink-0 flex-col border-l border-white/10 transition-[width] duration-200 ${
+            theater ? 'w-64' : 'w-96'
+          }`}
+        >
           <div className="flex items-baseline gap-2 border-b border-white/10 bg-black/20 px-3 py-2.5">
             <span className="text-xs tabular-nums text-slate-400">
               {segments.length > 0 ? (

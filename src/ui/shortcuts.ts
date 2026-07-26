@@ -65,8 +65,9 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     ],
   },
   {
-    title: '텍스트창',
+    title: '화면',
     items: [
+      { keys: ['F9'], label: '극장 모드 — 영상을 키우고 받아쓰기 창을 접는다' },
       { keys: ['Ctrl+T'], label: '텍스트창 열기 / 닫기' },
       { keys: ['F2'], label: '자막 원문 보기' },
       { keys: ['F12'], label: '창 크기 (절반 ↔ 전체)' },

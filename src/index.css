@@ -2,48 +2,50 @@
 @import 'tailwindcss';
 
 /**
- * 이 앱은 사람이 오래 앉아 듣고 쓰는 도구다. 그래서 흔한 차가운 슬레이트 대신
- * 종이에 가까운 따뜻한 어둠을 쓰고, 강조는 놋쇠빛 하나로만 한다.
+ * 색을 고르는 원칙이 하나 있다 — **영상 옆의 넓은 면은 반드시 중성이어야 한다.**
+ *
+ * 따뜻한 배경을 크게 깔면 동시대비 때문에 영상 색이 실제와 다르게 보인다.
+ * 영상 작업에서 주변을 중성 회색으로 두는 이유가 그것이다. 그래서 표면과
+ * 글자는 무채색으로 두고, 성격은 **작은 요소에만 쓰는 놋쇠빛 강조 하나**로 낸다.
+ * 색을 띠는 면적이 작으면 영상 판단을 방해하지 않는다.
  *
  * Tailwind 기본 팔레트(slate·sky)를 여기서 덮어써서, 컴포넌트를 건드리지 않고도
  * 전체 톤이 한 번에 바뀌게 했다.
  */
 @theme {
-  /* ── 표면: 따뜻한 어둠 ─────────────────────────────── */
-  --color-ink-950: #0c0b0a;
-  --color-ink-900: #141210;
-  --color-ink-800: #1c1916;
-  --color-ink-700: #262220;
-  --color-ink-600: #35302b;
+  /* ── 표면: 완전한 무채색 ───────────────────────────── */
+  --color-ink-950: #0d0d0d;
+  --color-ink-900: #151515;
+  --color-ink-800: #1c1c1c;
+  --color-ink-700: #262626;
+  --color-ink-600: #363636;
 
-  /* ── 중립: slate를 따뜻하게 덮어쓴다 ────────────────── */
-  --color-slate-100: #f3efe8;
-  --color-slate-200: #e0dad0;
-  --color-slate-300: #c5bdb1;
-  --color-slate-400: #9e968a;
-  --color-slate-500: #7e776c;
-  --color-slate-600: #605a51;
-  --color-slate-700: #47423b;
-  --color-slate-800: #2f2b27;
-  --color-slate-900: #1d1a17;
+  /* ── 글자·테두리: slate를 무채색으로 덮어쓴다 ────────── */
+  --color-slate-100: #f1f1f1;
+  --color-slate-200: #dcdcdc;
+  --color-slate-300: #c0c0c0;
+  --color-slate-400: #9a9a9a;
+  --color-slate-500: #7b7b7b;
+  --color-slate-600: #5d5d5d;
+  --color-slate-700: #454545;
+  --color-slate-800: #2d2d2d;
+  --color-slate-900: #1c1c1c;
 
-  /* ── 강조: 놋쇠. sky를 덮어써 앱 전체가 이 색 하나를 쓴다 ── */
+  /* ── 강조: 놋쇠. 작은 요소에만 쓰므로 영상 색을 흔들지 않는다 ── */
   --color-sky-200: #f2ddaa;
   --color-sky-300: #e5c680;
   --color-sky-400: #d2a747;
   --color-sky-500: #b98e32;
 
-  /* ── 채점: 형광기를 걷어내 놋쇠와 어울리게 ─────────────── */
+  /* ── 상태색: 형광기를 걷어 강조와 어울리게 ───────────── */
   --color-emerald-300: #9dbf8c;
   --color-emerald-400: #86ab74;
-  --color-emerald-500: #6f9160;
   --color-amber-300: #e0b96f;
   --color-amber-400: #d2a747;
   --color-amber-500: #b98e32;
   --color-rose-200: #e5b3aa;
   --color-rose-300: #d59287;
   --color-rose-400: #c4776b;
-  --color-rose-500: #a95f54;
 }
 
 html,

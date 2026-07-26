@@ -10,6 +10,19 @@ export interface MediaSource {
   /** object URL 또는 YouTube video id */
   src: string
   name: string
+  /** 학습 기록을 이어붙이기 위한 지문 (파일명·크기·수정시각 또는 YouTube id) */
+  key: string
+}
+
+/** 저장소에서 복원한 학습 상태 */
+export interface RestoredSession {
+  cues: Cue[]
+  segments: Segment[]
+  activeIndex: number
+  offsetSec: number
+  currentTime: number
+  inputs: Record<string, string>
+  results: Record<string, DictationResult>
 }
 
 export interface SubtitleInfo {
@@ -51,6 +64,12 @@ interface AppState {
 
   setMedia: (media: MediaSource) => void
   setSubtitle: (info: SubtitleInfo, cues: Cue[], segments: Segment[]) => void
+  restoreSession: (session: RestoredSession) => void
+  applyStoredSettings: (settings: {
+    loopSettings: LoopSettings
+    hideSubtitles: boolean
+    autoAdvance: boolean
+  }) => void
   clearAll: () => void
 
   setActiveIndex: (index: number) => void
@@ -122,6 +141,20 @@ export const useAppStore = create<AppState>()((set, get) => ({
       results: {},
       error: null,
     }),
+
+  restoreSession: (session) =>
+    set({
+      cues: session.cues,
+      segments: session.segments,
+      activeIndex: session.activeIndex,
+      offsetSec: session.offsetSec,
+      currentTime: session.currentTime,
+      inputs: session.inputs,
+      results: session.results,
+    }),
+
+  applyStoredSettings: ({ loopSettings, hideSubtitles, autoAdvance }) =>
+    set({ loopSettings, hideSubtitles, autoAdvance }),
 
   clearAll: () =>
     set((state) => {

@@ -11,6 +11,7 @@ import { PlayerPane } from './ui/PlayerPane'
 import { SegmentList } from './ui/SegmentList'
 import { useKeyboardShortcuts } from './ui/useKeyboardShortcuts'
 import { useLoadFiles } from './ui/useLoadFiles'
+import { usePersistence } from './ui/usePersistence'
 
 /** 재생 위치를 스토어에 반영하는 주기. 매 프레임 갱신하면 리렌더가 폭주한다 */
 const TIME_UPDATE_INTERVAL_SEC = 0.2
@@ -63,6 +64,7 @@ export default function App() {
   )
 
   useKeyboardShortcuts({ replay, stop, move })
+  usePersistence()
 
   // ─── 어댑터 + 루프 컨트롤러 수명 관리 ───────────────────────────
   useEffect(() => {

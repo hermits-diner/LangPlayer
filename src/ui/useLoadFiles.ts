@@ -3,6 +3,7 @@ import { classifyFiles, mediaKindOf } from '../core/files/match'
 import { parseSubtitleFile } from '../core/subtitle/parse'
 import { buildSegments } from '../core/subtitle/segment'
 import { extractYouTubeId } from '../core/player/YouTubeAdapter'
+import { mediaKeyForFile, mediaKeyForYouTube } from '../core/storage/serialize'
 import { useAppStore } from '../store/useAppStore'
 
 /**
@@ -29,6 +30,7 @@ export function useLoadFiles() {
           kind: mediaKindOf(media.name)!,
           src: URL.createObjectURL(media),
           name: media.name,
+          key: mediaKeyForFile(media),
         })
       }
 
@@ -65,7 +67,7 @@ export function useLoadFiles() {
         return false
       }
 
-      setMedia({ kind: 'youtube', src: id, name: url })
+      setMedia({ kind: 'youtube', src: id, name: url, key: mediaKeyForYouTube(id) })
       setNotice('자막 파일(srt/vtt)을 올리면 문장 목록이 만들어집니다.')
       return true
     },

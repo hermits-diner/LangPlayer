@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { clearAllSessions, countSessions } from '../core/storage/db'
 import { useAppStore } from '../store/useAppStore'
 import { useLoadFiles } from './useLoadFiles'
 
@@ -8,6 +9,11 @@ export function DropZone({ isDragging }: { isDragging: boolean }) {
   const error = useAppStore((s) => s.error)
   const inputRef = useRef<HTMLInputElement>(null)
   const [url, setUrl] = useState('')
+  const [savedCount, setSavedCount] = useState(0)
+
+  useEffect(() => {
+    void countSessions().then(setSavedCount)
+  }, [])
 
   const submitUrl = (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,9 +73,26 @@ export function DropZone({ isDragging }: { isDragging: boolean }) {
 
       {error && <p className="max-w-xl text-center text-sm text-rose-300">{error}</p>}
 
-      <p className="max-w-md text-center text-xs leading-relaxed text-slate-600">
-        파일은 브라우저 안에서만 처리되며 어디에도 업로드되지 않습니다.
-      </p>
+      <div className="flex flex-col items-center gap-1.5">
+        <p className="max-w-md text-center text-xs leading-relaxed text-slate-600">
+          파일은 브라우저 안에서만 처리되며 어디에도 업로드되지 않습니다.
+        </p>
+
+        {savedCount > 0 && (
+          <p className="text-xs text-slate-600">
+            학습 기록 {savedCount}개 저장됨 — 같은 파일을 다시 열면 이어집니다.{' '}
+            <button
+              type="button"
+              onClick={() => {
+                void clearAllSessions().then(() => setSavedCount(0))
+              }}
+              className="underline decoration-dotted underline-offset-2 transition hover:text-slate-400"
+            >
+              지우기
+            </button>
+          </p>
+        )}
+      </div>
     </div>
   )
 }

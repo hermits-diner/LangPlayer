@@ -27,11 +27,13 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
   const sync = useAppStore((s) => s.sync)
   const mediaKind = useAppStore((s) => s.media?.kind)
   const hideSubtitles = useAppStore((s) => s.hideSubtitles)
+  const videoSubtitles = useAppStore((s) => s.videoSubtitles)
   const autoAdvance = useAppStore((s) => s.autoAdvance)
   const update = useAppStore((s) => s.updateLoopSettings)
   const nudgeOffset = useAppStore((s) => s.nudgeOffset)
   const resetSync = useAppStore((s) => s.resetSync)
   const toggleHide = useAppStore((s) => s.toggleHideSubtitles)
+  const toggleVideoSubtitles = useAppStore((s) => s.toggleVideoSubtitles)
   const toggleAutoAdvance = useAppStore((s) => s.toggleAutoAdvance)
 
   const auto = useAutoSync()
@@ -219,6 +221,21 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
       <div className="ml-auto flex items-center gap-1.5">
         <button type="button" onClick={toggleAutoAdvance} className={`chip ${autoAdvance ? 'chip-active' : ''}`}>
           자동 넘김
+        </button>
+        <button
+          type="button"
+          onClick={toggleVideoSubtitles}
+          disabled={hideSubtitles}
+          title={
+            hideSubtitles
+              ? '자막 숨김을 끄면 쓸 수 있습니다'
+              : '여느 플레이어처럼 영상 아래에 현재 문장을 띄웁니다'
+          }
+          className={`chip disabled:cursor-not-allowed disabled:opacity-40 ${
+            videoSubtitles && !hideSubtitles ? 'chip-active' : ''
+          }`}
+        >
+          화면 자막
         </button>
         <button type="button" onClick={toggleHide} className={`chip ${hideSubtitles ? 'chip-active' : ''}`}>
           {hideSubtitles ? '자막 숨김' : '자막 보임'}

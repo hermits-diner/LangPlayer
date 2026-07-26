@@ -1,5 +1,6 @@
 import { extensionOf, isOftenUnsupported } from '../core/files/match'
 import { useAppStore } from '../store/useAppStore'
+import { SubtitleOverlay } from './SubtitleOverlay'
 
 interface Props {
   mediaRef: React.RefObject<HTMLMediaElement | null>
@@ -28,9 +29,10 @@ export function PlayerPane({ mediaRef, youtubeRef, theater }: Props) {
 
   if (media.kind === 'youtube') {
     return (
-      <div className={`flex w-full items-center justify-center bg-black ${height}`}>
+      <div className={`relative flex w-full items-center justify-center bg-black ${height}`}>
         {/* YouTube IFrame API가 이 div를 iframe으로 교체한다 */}
         <div ref={youtubeRef} className="h-full w-full" />
+        <SubtitleOverlay />
       </div>
     )
   }
@@ -57,24 +59,32 @@ export function PlayerPane({ mediaRef, youtubeRef, theater }: Props) {
           className="relative w-full max-w-lg"
           onError={() => setError('오디오 파일을 재생할 수 없습니다. 형식을 확인해 주세요.')}
         />
+
+        <SubtitleOverlay />
       </div>
     )
   }
 
   return (
-    <video
-      ref={mediaRef as React.RefObject<HTMLVideoElement>}
-      src={media.src}
-      controls
-      playsInline
-      className={`w-full bg-black object-contain ${height}`}
-      onError={() =>
-        setError(
-          isOftenUnsupported(media.name)
-            ? `이 영상을 재생하지 못했습니다. ${extensionOf(media.name).toUpperCase()}는 브라우저·OS 코덱에 따라 갈리는 형식입니다. MP4(H.264/AAC)로 변환하면 확실합니다.`
-            : '이 영상을 재생하지 못했습니다. 파일이 손상되었거나 지원하지 않는 코덱일 수 있습니다.',
-        )
-      }
-    />
+    // 자막을 영상 위에 얹으려면 기준이 될 상자가 필요하다. 높이는 이 상자가 쥐고
+    // 영상은 그 안을 채운다 — 자막이 영상 밖으로 벗어나지 않는다
+    <div className={`relative w-full bg-black ${height}`}>
+      <video
+        ref={mediaRef as React.RefObject<HTMLVideoElement>}
+        src={media.src}
+        controls
+        playsInline
+        className="h-full w-full object-contain"
+        onError={() =>
+          setError(
+            isOftenUnsupported(media.name)
+              ? `이 영상을 재생하지 못했습니다. ${extensionOf(media.name).toUpperCase()}는 브라우저·OS 코덱에 따라 갈리는 형식입니다. MP4(H.264/AAC)로 변환하면 확실합니다.`
+              : '이 영상을 재생하지 못했습니다. 파일이 손상되었거나 지원하지 않는 코덱일 수 있습니다.',
+          )
+        }
+      />
+
+      <SubtitleOverlay />
+    </div>
   )
 }

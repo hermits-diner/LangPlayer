@@ -93,6 +93,13 @@ interface AppState {
   currentTime: number
 
   hideSubtitles: boolean
+  /**
+   * 영상 위에 현재 문장을 자막처럼 띄운다.
+   *
+   * `hideSubtitles`가 켜져 있으면 이 값과 무관하게 보이지 않는다 — 숨김은
+   * "정답을 보지 않겠다"는 선언이라 화면에만 예외를 둘 수 없다.
+   */
+  videoSubtitles: boolean
   /** 반복을 다 채우면 자동으로 다음 문장으로 넘어간다 */
   autoAdvance: boolean
   /**
@@ -112,6 +119,7 @@ interface AppState {
   applyStoredSettings: (settings: {
     loopSettings: LoopSettings
     hideSubtitles: boolean
+    videoSubtitles: boolean
     autoAdvance: boolean
   }) => void
   clearAll: () => void
@@ -124,6 +132,7 @@ interface AppState {
   updateLoopSettings: (partial: Partial<LoopSettings>) => void
 
   toggleHideSubtitles: () => void
+  toggleVideoSubtitles: () => void
   toggleAutoAdvance: () => void
   setInput: (key: string, text: string) => void
 
@@ -199,6 +208,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   currentTime: 0,
 
   hideSubtitles: true,
+  videoSubtitles: false,
   autoAdvance: false,
   inputs: {},
 
@@ -236,8 +246,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
       inputs: session.inputs,
     }),
 
-  applyStoredSettings: ({ loopSettings, hideSubtitles, autoAdvance }) =>
-    set({ loopSettings, hideSubtitles, autoAdvance }),
+  applyStoredSettings: ({ loopSettings, hideSubtitles, videoSubtitles, autoAdvance }) =>
+    set({ loopSettings, hideSubtitles, videoSubtitles, autoAdvance }),
 
   clearAll: () =>
     set((state) => {
@@ -283,6 +293,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set((state) => ({ loopSettings: { ...state.loopSettings, ...partial } })),
 
   toggleHideSubtitles: () => set((state) => ({ hideSubtitles: !state.hideSubtitles })),
+
+  toggleVideoSubtitles: () => set((state) => ({ videoSubtitles: !state.videoSubtitles })),
 
   toggleAutoAdvance: () => set((state) => ({ autoAdvance: !state.autoAdvance })),
 

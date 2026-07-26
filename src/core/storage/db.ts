@@ -45,6 +45,8 @@ export interface SettingsRow {
   id: 'global'
   loopSettings: StoredLoopSettings
   hideSubtitles: boolean
+  /** 영상 위 자막. 나중에 추가돼서 옛 기록에는 없다 (색인이 아니라 마이그레이션 불필요) */
+  videoSubtitles?: boolean
   autoAdvance: boolean
 }
 

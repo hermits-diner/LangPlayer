@@ -47,6 +47,7 @@ export function usePersistence() {
       useAppStore.getState().applyStoredSettings({
         loopSettings: deserializeLoopSettings(row.loopSettings),
         hideSubtitles: row.hideSubtitles,
+        videoSubtitles: row.videoSubtitles ?? false,
         autoAdvance: row.autoAdvance,
       })
     })
@@ -59,6 +60,7 @@ export function usePersistence() {
   // ─── 전역 설정 저장 ─────────────────────────────────────────────
   const loopSettings = useAppStore((s) => s.loopSettings)
   const hideSubtitles = useAppStore((s) => s.hideSubtitles)
+  const videoSubtitles = useAppStore((s) => s.videoSubtitles)
   const autoAdvance = useAppStore((s) => s.autoAdvance)
 
   useEffect(() => {
@@ -67,12 +69,13 @@ export function usePersistence() {
         id: 'global',
         loopSettings: serializeLoopSettings(loopSettings),
         hideSubtitles,
+        videoSubtitles,
         autoAdvance,
       })
     }, SAVE_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [loopSettings, hideSubtitles, autoAdvance])
+  }, [loopSettings, hideSubtitles, videoSubtitles, autoAdvance])
 
   // ─── 세션 복원 ──────────────────────────────────────────────────
   useEffect(() => {

@@ -152,29 +152,47 @@ export default function App() {
   }, [replay, stop])
 
   // ─── 섹션 편집 ─────────────────────────────────────────────────
+  /**
+   * 섹션 편집 뒤에는 바뀐 구간을 곧바로 들려준다.
+   *
+   * 재생 중이던 루프는 편집 전 시각을 붙들고 있어서, 그대로 두면 자막은 합쳐졌는데
+   * 소리는 옛 경계에서 끊긴다. 새 경계로 다시 걸어 주면 귀로 바로 확인이 된다.
+   */
   const mergeSections = useCallback(() => {
     const store = useAppStore.getState()
-    // 여러 개를 골라 뒀으면 그것들을 한꺼번에, 아니면 현재 문장과 다음 문장을
     const picked = store.selection
-    if (picked.length > 1) {
-      for (let i = 0; i < picked.length - 1; i++) {
-        useAppStore.getState().setActiveIndex(picked[0])
-        useAppStore.getState().mergeActiveWithNext()
-      }
-      return
-    }
-    store.mergeActiveWithNext()
-  }, [])
+
+    // 여러 개를 골라 뒀으면 그 범위를 통째로, 아니면 현재 문장과 다음 문장을
+    const from = picked.length > 1 ? picked[0] : store.activeIndex
+    const to = picked.length > 1 ? picked[picked.length - 1] : store.activeIndex + 1
+    if (from < 0 || to >= store.segments.length) return
+
+    store.mergeRange(from, to)
+    playSegment(from)
+  }, [playSegment])
 
   const splitSection = useCallback(() => {
     const store = useAppStore.getState()
     const segment = store.segments[store.activeIndex]
+    const index = store.activeIndex
 
     // 재생 위치가 문장 한가운데쯤이면 거기서 가르고, 가장자리에 붙어 있으면
     // (막 문장 앞으로 탐색한 직후가 그렇다) 원래 자막 큐 경계로 되돌린다
     if (segment && canSplitAt(segment, store.currentTime)) store.splitActiveAt(store.currentTime)
     else store.splitActive()
-  }, [])
+
+    playSegment(index)
+  }, [playSegment])
+
+  /** 음파창에서 찍은 지점으로 나누고, 앞쪽 조각을 들려준다 */
+  const splitAt = useCallback(
+    (timeSec: number) => {
+      const index = useAppStore.getState().activeIndex
+      useAppStore.getState().splitActiveAt(timeSec)
+      playSegment(index)
+    },
+    [playSegment],
+  )
 
   const groupOneMore = useCallback(() => {
     const store = useAppStore.getState()
@@ -566,7 +584,7 @@ export default function App() {
             <Waveform
               onPlayRange={playRange}
               onTogglePlay={togglePlay}
-              onSplitAt={(sec) => useAppStore.getState().splitActiveAt(sec)}
+              onSplitAt={splitAt}
               onSelectSegment={selectFromWaveform}
               view={view}
               onViewChange={setView}
@@ -594,7 +612,7 @@ export default function App() {
             <span className="ml-2 text-slate-700">F7/F8 이동 · F5 반복 · F11 연속</span>
           </div>
           <div className="min-h-0 flex-1">
-            <SegmentList onSelect={selectFromList} />
+            <SegmentList onSelect={selectFromList} onMerge={mergeSections} onSplit={splitSection} />
           </div>
         </aside>
       </main>

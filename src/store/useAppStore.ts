@@ -133,6 +133,8 @@ interface AppState {
   setWaveform: (envelope: Float32Array | null, state: WaveformState) => void
 
   mergeActiveWithNext: () => void
+  /** from~to 구간을 문장 하나로 접는다 (양끝 포함) */
+  mergeRange: (from: number, to: number) => void
   splitActive: () => void
   splitActiveAt: (timeSec: number) => void
   nudgeOffset: (deltaSec: number) => void
@@ -290,6 +292,17 @@ export const useAppStore = create<AppState>()((set, get) => ({
     const { segments, activeIndex } = get()
     if (activeIndex < 0 || activeIndex >= segments.length - 1) return
     set({ segments: mergeWithNext(segments, activeIndex), selection: [] })
+  },
+
+  mergeRange: (from, to) => {
+    const { segments } = get()
+    if (from < 0 || to >= segments.length || to <= from) return
+
+    // 한 번 합칠 때마다 뒤 문장이 앞으로 당겨지므로, 늘 같은 자리에서 반복하면 된다
+    let merged = segments
+    for (let i = from; i < to; i++) merged = mergeWithNext(merged, from)
+
+    set({ segments: merged, activeIndex: from, selection: [] })
   },
 
   toggleSelection: (index) =>

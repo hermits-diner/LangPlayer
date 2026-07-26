@@ -14,11 +14,14 @@ export interface SegmentSelectModifiers {
   ctrl: boolean
 }
 
-export function SegmentList({
-  onSelect,
-}: {
+export interface SegmentListProps {
   onSelect: (index: number, modifiers: SegmentSelectModifiers) => void
-}) {
+  /** 편집 후 바뀐 구간을 다시 들려주기 위해 App의 명령을 그대로 쓴다 */
+  onMerge: () => void
+  onSplit: () => void
+}
+
+export function SegmentList({ onSelect, onMerge, onSplit }: SegmentListProps) {
   const segments = useAppStore((s) => s.segments)
   const activeIndex = useAppStore((s) => s.activeIndex)
   const hideSubtitles = useAppStore((s) => s.hideSubtitles)
@@ -53,6 +56,8 @@ export function SegmentList({
           accuracy={results[segmentKey(segment)]?.accuracy}
           onSelect={onSelect}
           onToggleSelect={toggleSelection}
+          onMerge={onMerge}
+          onSplit={onSplit}
         />
       ))}
     </ul>
@@ -69,6 +74,8 @@ interface RowProps {
   accuracy: number | undefined
   onSelect: (index: number, modifiers: SegmentSelectModifiers) => void
   onToggleSelect: (index: number) => void
+  onMerge: () => void
+  onSplit: () => void
 }
 
 function SegmentRow({
@@ -81,10 +88,9 @@ function SegmentRow({
   accuracy,
   onSelect,
   onToggleSelect,
+  onMerge,
+  onSplit,
 }: RowProps) {
-  const mergeActiveWithNext = useAppStore((s) => s.mergeActiveWithNext)
-  const splitActive = useAppStore((s) => s.splitActive)
-
   const background = isActive
     ? 'border-sky-400 bg-sky-400/10'
     : isSelected
@@ -129,14 +135,12 @@ function SegmentRow({
 
         {isActive && (
           <div className="mt-1.5 flex gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
-            <button type="button" onClick={mergeActiveWithNext} className="chip">
+            <button type="button" onClick={onMerge} className="chip">
               다음과 합치기
             </button>
-            {segment.cueIds.length > 1 && (
-              <button type="button" onClick={splitActive} className="chip">
-                쪼개기
-              </button>
-            )}
+            <button type="button" onClick={onSplit} className="chip">
+              쪼개기
+            </button>
           </div>
         )}
       </div>

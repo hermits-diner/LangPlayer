@@ -76,6 +76,54 @@ describe('applySync', () => {
   })
 })
 
+describe('mergeRange', () => {
+  const FIVE = [
+    segment('a', 0, 2, 'one'),
+    segment('b', 2, 4, 'two'),
+    segment('c', 4, 6, 'three'),
+    segment('d', 6, 8, 'four'),
+    segment('e', 8, 10, 'five'),
+  ]
+
+  beforeEach(() => {
+    useAppStore.setState({ segments: FIVE, activeIndex: 0, selection: [] })
+  })
+
+  it('범위를 문장 하나로 접는다', () => {
+    useAppStore.getState().mergeRange(1, 3)
+    const segments = useAppStore.getState().segments
+
+    expect(segments).toHaveLength(3)
+    expect(segments[1]).toMatchObject({ start: 2, end: 8, text: 'two three four' })
+  })
+
+  it('합친 문장이 선택되고 다중 선택은 풀린다', () => {
+    useAppStore.setState({ selection: [1, 2, 3] })
+    useAppStore.getState().mergeRange(1, 3)
+
+    expect(useAppStore.getState().activeIndex).toBe(1)
+    expect(useAppStore.getState().selection).toEqual([])
+  })
+
+  it('합친 구간이 원래 시각 범위를 그대로 덮는다', () => {
+    useAppStore.getState().mergeRange(0, 4)
+    const [only] = useAppStore.getState().segments
+
+    expect(useAppStore.getState().segments).toHaveLength(1)
+    expect([only.start, only.end]).toEqual([0, 10])
+  })
+
+  it('범위가 뒤집혔거나 벗어나면 무시한다', () => {
+    const before = useAppStore.getState().segments
+
+    useAppStore.getState().mergeRange(3, 1)
+    expect(useAppStore.getState().segments).toBe(before)
+
+    useAppStore.getState().mergeRange(2, 99)
+    expect(useAppStore.getState().segments).toBe(before)
+  })
+})
+
 describe('splitActiveAt', () => {
   it('찍은 지점에서 문장을 둘로 가른다', () => {
     useAppStore.getState().splitActiveAt(11)

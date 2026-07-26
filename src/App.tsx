@@ -8,6 +8,7 @@ import { canSplitAt, useAppStore } from './store/useAppStore'
 import { useTextStore } from './store/useTextStore'
 import { DictationPane } from './ui/DictationPane'
 import { TextWindow } from './ui/TextWindow'
+import { TranscriptPaste } from './ui/TranscriptPaste'
 import { useWorkspace } from './ui/useWorkspace'
 import { DropZone } from './ui/DropZone'
 import { LoopControls } from './ui/LoopControls'
@@ -642,7 +643,11 @@ export default function App() {
             <span className="ml-2 text-slate-700">F6/F7 이동 · F5 반복 · F11 연속</span>
           </div>
           <div className="min-h-0 flex-1">
-            <SegmentList onSelect={selectFromList} onMerge={mergeSections} onSplit={splitSection} />
+            {segments.length === 0 ? (
+              <TranscriptPaste />
+            ) : (
+              <SegmentList onSelect={selectFromList} onMerge={mergeSections} onSplit={splitSection} />
+            )}
           </div>
         </aside>
       </main>

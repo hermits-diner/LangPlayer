@@ -22,7 +22,7 @@ export interface Segment {
   cueIds: string[]
 }
 
-export type SubtitleFormat = 'srt' | 'vtt' | 'smi' | 'ass'
+export type SubtitleFormat = 'srt' | 'vtt' | 'smi' | 'ass' | 'transcript'
 
 export class SubtitleParseError extends Error {
   constructor(

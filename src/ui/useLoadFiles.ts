@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { classifyFiles, mediaKindOf } from '../core/files/match'
-import { parseSubtitleFile } from '../core/subtitle/parse'
+import { parseSubtitleFile, parseSubtitleText, sniffFormat } from '../core/subtitle/parse'
+import { normalizeNewlines } from '../core/subtitle/decode'
 import { buildSegments } from '../core/subtitle/segment'
 import { extractYouTubeId } from '../core/player/YouTubeAdapter'
 import { mediaKeyForFile, mediaKeyForYouTube } from '../core/storage/serialize'
@@ -74,5 +75,36 @@ export function useLoadFiles() {
     [setError, setMedia, setNotice],
   )
 
-  return { loadFiles, loadYouTube }
+  /**
+   * 붙여넣은 텍스트를 자막으로 삼는다.
+   *
+   * YouTube는 자막 텍스트를 내주지 않고 자막 엔드포인트도 CORS로 막혀 있어,
+   * 사용자가 '스크립트 표시'에서 복사해 오는 것이 유일하게 온전한 경로다.
+   * 형식은 내용으로 알아서 판별하므로 srt를 붙여넣어도 그대로 동작한다.
+   */
+  const loadSubtitleText = useCallback(
+    (text: string, name: string) => {
+      const normalized = normalizeNewlines(text)
+      if (!normalized.trim()) return false
+
+      try {
+        const format = sniffFormat(normalized)
+        const cues = parseSubtitleText(normalized, format)
+        const segments = buildSegments(cues)
+
+        setSubtitle({ name, format, encoding: 'utf-8' }, cues, segments)
+        setNotice(
+          `${segments.length}개 문장 · ${format === 'transcript' ? 'YouTube 스크립트' : format.toUpperCase()}`,
+        )
+        setError(null)
+        return true
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '붙여넣은 자막을 읽지 못했습니다.')
+        return false
+      }
+    },
+    [setError, setNotice, setSubtitle],
+  )
+
+  return { loadFiles, loadYouTube, loadSubtitleText }
 }

@@ -4,6 +4,7 @@ import { SubtitleParseError } from '../types'
 import { parseAss } from './ass'
 import { parseSmi } from './smi'
 import { parseSrt } from './srt'
+import { looksLikeTranscript, parseTranscript } from './transcript'
 import { parseVtt } from './vtt'
 
 export interface ParsedSubtitle {
@@ -33,6 +34,8 @@ export function sniffFormat(text: string): SubtitleFormat {
   if (/^﻿?WEBVTT/.test(head)) return 'vtt'
   if (/<sami|<sync\s/i.test(head)) return 'smi'
   if (/\[script info\]|\[events\]|^dialogue\s*:/im.test(head)) return 'ass'
+  // `-->`가 없는데 시각 줄이 반복되면 유튜브에서 복사한 스크립트다
+  if (!head.includes('-->') && looksLikeTranscript(text)) return 'transcript'
   return 'srt'
 }
 
@@ -41,6 +44,7 @@ const PARSERS: Record<SubtitleFormat, (text: string) => Cue[]> = {
   vtt: parseVtt,
   smi: parseSmi,
   ass: parseAss,
+  transcript: parseTranscript,
 }
 
 export function parseSubtitleText(text: string, format: SubtitleFormat): Cue[] {

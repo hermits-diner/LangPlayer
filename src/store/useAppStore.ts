@@ -170,6 +170,16 @@ interface AppState {
   /** 현재 문장을 문장 단위로 쪼갠다. 문장이 하나뿐이면 아무 일도 하지 않고 false */
   splitActiveBySentence: () => boolean
   /**
+   * F4 — 나누기. 세 기준을 차례로 시도하고 어느 것으로 나눴는지 돌려준다.
+   *
+   * 1. **재생 위치** — 듣다가 "여기서 끊자" 싶은 순간에 누르는 것이 F4의 본래
+   *    쓰임이다. 그래서 재생 위치가 쓸 만하면 그것을 가장 먼저 존중한다
+   * 2. **문장 단위** — 재생 위치가 가장자리에 붙어 있으면(문장을 막 고른 직후)
+   *    구간에 담긴 문장들로 가른다
+   * 3. **큐 경계** — 둘 다 안 되면 원래 자막이 나눠 둔 대로 되돌린다
+   */
+  splitActiveSmart: () => 'playhead' | 'sentence' | 'cue' | 'none'
+  /**
    * 문장별 미세 맞춤 — 각 문장을 파형의 소리 경계로 당긴다.
    * 되돌릴 수 있도록 직전 상태를 한 단계 보관한다.
    */
@@ -416,6 +426,23 @@ export const useAppStore = create<AppState>()((set, get) => ({
     const next = [...segments.slice(0, activeIndex), ...pieces, ...segments.slice(activeIndex + 1)]
     set({ segments: next.map((s, i) => ({ ...s, id: `seg-${i}` })), selection: [] })
     return true
+  },
+
+  splitActiveSmart: () => {
+    const state = get()
+    const segment = state.segments[state.activeIndex]
+    if (!segment) return 'none'
+
+    if (canSplitAt(segment, state.currentTime)) {
+      state.splitActiveAt(state.currentTime)
+      return 'playhead'
+    }
+
+    if (state.splitActiveBySentence()) return 'sentence'
+
+    const before = state.segments.length
+    state.splitActive()
+    return get().segments.length > before ? 'cue' : 'none'
   },
 
   splitActive: () => {

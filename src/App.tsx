@@ -5,7 +5,7 @@ import { HtmlMediaAdapter } from './core/player/HtmlMediaAdapter'
 import type { PlayerAdapter } from './core/player/PlayerAdapter'
 import { YouTubeAdapter } from './core/player/YouTubeAdapter'
 import { toSrt } from './core/subtitle/export'
-import { canSplitAt, useAppStore } from './store/useAppStore'
+import { useAppStore } from './store/useAppStore'
 import { useTextStore } from './store/useTextStore'
 import { AppMenu } from './ui/AppMenu'
 import { DictationPane } from './ui/DictationPane'
@@ -170,23 +170,12 @@ export default function App() {
   }, [playSegment])
 
   /**
-   * 쪼개기는 세 가지 기준을 차례로 시도한다.
-   *
-   *   1. **문장 단위** — 구간에 문장이 여럿이면 문장별로 가른다. 경계는 원래 큐
-   *      경계나 파형의 쉼에 맞춘다. 이 앱의 학습 단위가 문장이므로 이게 기본이다.
-   *   2. **재생 위치** — 문장이 하나뿐인데 사용자가 어딘가를 짚어 뒀다면 거기서
-   *   3. **큐 경계** — 둘 다 아니면 원래 자막이 나눠 둔 대로 되돌린다
+   * F4 — 나누기. 기준 선택은 스토어(`splitActiveSmart`)가 쥐고 있다.
+   * 재생 위치 → 문장 단위 → 큐 경계 순으로 시도한다.
    */
   const splitSection = useCallback(() => {
-    const store = useAppStore.getState()
-    const segment = store.segments[store.activeIndex]
-    const index = store.activeIndex
-
-    if (!store.splitActiveBySentence()) {
-      if (segment && canSplitAt(segment, store.currentTime)) store.splitActiveAt(store.currentTime)
-      else store.splitActive()
-    }
-
+    const index = useAppStore.getState().activeIndex
+    useAppStore.getState().splitActiveSmart()
     playSegment(index)
   }, [playSegment])
 

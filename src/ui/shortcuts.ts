@@ -40,7 +40,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: '문장 편집',
     items: [
       { keys: ['F3'], label: '합치기 — 범위를 골라 두었으면 통째로' },
-      { keys: ['F4'], label: '나누기 — 문장 단위 → 재생 위치 → 자막 경계 순으로 시도' },
+      { keys: ['F4'], label: '나누기 — 재생 위치 → 문장 단위 → 자막 경계 순으로 시도' },
       { keys: ['두 번 클릭'], label: '자막 문장 고치기' },
       { keys: ['오른쪽 클릭'], label: '문장 개별 선택' },
       { keys: ['Shift+클릭'], label: '범위 선택' },
@@ -49,9 +49,10 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: '음파창',
     items: [
+      { keys: ['왼쪽 클릭'], label: '그 문장을 골라 구간 반복' },
       { keys: ['드래그'], label: '고른 구간만 한 번 재생' },
       { keys: ['오른쪽 클릭'], label: '재생 / 정지' },
-      { keys: ['Ctrl+오른쪽 클릭'], label: '그 지점에서 나누기' },
+      { keys: ['Ctrl+오른쪽 클릭'], label: '마우스 위치에서 나누기' },
       { keys: ['＋', '－'], label: '확대 / 축소 (숫자패드, Ctrl+휠도 동일)' },
       { keys: ['／'], label: '전체 보기 (숫자패드)' },
     ],

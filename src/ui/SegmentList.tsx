@@ -175,7 +175,7 @@ function SegmentRow({
               type="button"
               onClick={onSplit}
               className="chip"
-              title="문장 단위 → 재생 위치 → 자막 경계 순으로 나눕니다 (F4)"
+              title="재생 위치 → 문장 단위 → 자막 경계 순으로 나눕니다 (F4)"
             >
               쪼개기 <kbd className="kbd ml-0.5">F4</kbd>
             </button>

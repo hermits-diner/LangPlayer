@@ -26,6 +26,58 @@ beforeEach(() => {
 
 const times = () => useAppStore.getState().segments.map((s) => [s.start, s.end])
 
+describe('splitActiveSmart', () => {
+  /** 큐 두 개가 한 문장으로 묶인 상태 — 큐 경계로 되돌릴 여지가 있다 */
+  const seedTwoCues = (text = 'One two three four five six.') => {
+    useAppStore.setState({
+      segments: [{ id: 'seg-0', start: 10, end: 20, text, cueIds: ['c0', 'c1'] }],
+      cues: [
+        { id: 'c0', start: 10, end: 15, text: 'One two three' },
+        { id: 'c1', start: 15, end: 20, text: 'four five six.' },
+      ],
+      activeIndex: 0,
+      currentTime: 0,
+      sync: IDENTITY_SYNC,
+    })
+  }
+
+  it('재생 위치가 쓸 만하면 거기서 나눈다', () => {
+    seedTwoCues()
+    useAppStore.setState({ currentTime: 17 })
+
+    expect(useAppStore.getState().splitActiveSmart()).toBe('playhead')
+    expect(times()).toEqual([
+      [10, 17],
+      [17, 20],
+    ])
+  })
+
+  it('재생 위치가 가장자리에 붙어 있으면 문장 단위로 나눈다', () => {
+    // 문장을 막 골랐을 때의 상태 — 재생 위치가 문장 첫머리에 있다
+    seedTwoCues('First one. Second one.')
+    useAppStore.setState({ currentTime: 10 })
+
+    expect(useAppStore.getState().splitActiveSmart()).toBe('sentence')
+    expect(useAppStore.getState().segments.map((s) => s.text)).toEqual(['First one.', 'Second one.'])
+  })
+
+  it('문장이 하나뿐이고 재생 위치도 못 쓰면 큐 경계로 되돌린다', () => {
+    seedTwoCues('한 문장뿐인 자막')
+    useAppStore.setState({ currentTime: 10 })
+
+    expect(useAppStore.getState().splitActiveSmart()).toBe('cue')
+    expect(times()).toEqual([
+      [10, 15],
+      [15, 20],
+    ])
+  })
+
+  it('나눌 문장이 없으면 아무 일도 하지 않는다', () => {
+    useAppStore.setState({ segments: [], cues: [], activeIndex: -1 })
+    expect(useAppStore.getState().splitActiveSmart()).toBe('none')
+  })
+})
+
 describe('applySyncPieces', () => {
   const seed = () => {
     useAppStore.setState({

@@ -24,6 +24,9 @@ export interface WaveformProps {
 /** 화면 가로 1픽셀에 포락선 몇 칸이 들어가든, 그 구간의 최대값을 그린다 */
 const MIN_VIEW_SEC = 1
 
+/** 이만큼 안 움직였으면 드래그가 아니라 클릭이다 (손 떨림 허용치) */
+const CLICK_SLOP_PX = 4
+
 /**
  * 음파창.
  *
@@ -50,7 +53,9 @@ export function Waveform({
   const selection = useAppStore((s) => s.selection)
   const currentTime = useAppStore((s) => s.currentTime)
 
-  const [drag, setDrag] = useState<{ from: number; to: number } | null>(null)
+  const [drag, setDrag] = useState<{ from: number; to: number; fromX: number; toX: number } | null>(
+    null,
+  )
   const [size, setSize] = useState({ width: 0, height: 0 })
 
   const selectedSet = useMemo(() => new Set(selection), [selection])
@@ -203,22 +208,27 @@ export function Waveform({
       return
     }
 
-    setDrag({ from: sec, to: sec })
+    setDrag({ from: sec, to: sec, fromX: e.clientX, toX: e.clientX })
   }
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!drag) return
-    setDrag({ ...drag, to: timeAt(e.clientX) })
+    setDrag({ ...drag, to: timeAt(e.clientX), toX: e.clientX })
   }
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (!drag) return
     const from = Math.min(drag.from, drag.to)
     const to = Math.max(drag.from, drag.to)
+    const movedPx = Math.abs(drag.toX - drag.fromX)
     setDrag(null)
 
-    // 드래그 거리가 거의 없으면 클릭으로 간주 — 그 문장을 고른다
-    if (to - from < 0.05) {
+    // 클릭인지 드래그인지는 **픽셀**로 가른다.
+    //
+    // 시간으로 재면 배율에 따라 뜻이 달라진다. 2시간을 한 화면에 펼친 상태에서는
+    // 1픽셀이 6초라, 손이 살짝 떨린 클릭도 "6초 구간 드래그"가 되어 문장 재생이
+    // 아니라 엉뚱한 구간 재생으로 빠진다.
+    if (movedPx <= CLICK_SLOP_PX) {
       const index = segmentAt(from)
       if (index >= 0) onSelectSegment(index, { shift: false, ctrl: e.ctrlKey })
       return
@@ -263,7 +273,7 @@ export function Waveform({
       onWheel={ready ? handleWheel : undefined}
       title={
         ready
-          ? '드래그: 구간 재생 · 오른쪽 클릭: 재생/정지 · Ctrl+오른쪽 클릭: 나누기 · Ctrl+휠: 확대'
+          ? '클릭: 그 문장 반복 · 드래그: 고른 구간 재생 · 오른쪽 클릭: 재생/정지 · Ctrl+오른쪽 클릭: 그 지점에서 나누기 · Ctrl+휠: 확대'
           : undefined
       }
     >

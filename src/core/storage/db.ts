@@ -47,6 +47,8 @@ export interface SettingsRow {
   hideSubtitles: boolean
   /** 영상 위 자막. 나중에 추가돼서 옛 기록에는 없다 (색인이 아니라 마이그레이션 불필요) */
   videoSubtitles?: boolean
+  /** 화면 자막 글자 크기 배수 */
+  videoSubtitleScale?: number
   autoAdvance: boolean
 }
 

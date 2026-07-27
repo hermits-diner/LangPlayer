@@ -10,7 +10,24 @@ import { useAppStore } from '../store/useAppStore'
  * `자막 숨김`을 켜면 이 자막도 함께 사라진다. 숨김은 "정답을 보지 않겠다"는
  * 뜻인데, 화면에 그대로 떠 있으면 그 선언이 무의미해지기 때문이다.
  */
+/**
+ * 글자 크기 선택지.
+ *
+ * 기준 크기는 화면 폭을 따라간다 — 창을 키우면 자막도 커져야 비율이 유지된다.
+ * 여기 배수는 그 위에 얹는 개인 취향이다.
+ */
+export const SUBTITLE_SCALES = [
+  { value: 0.8, label: '작게' },
+  { value: 1, label: '보통' },
+  { value: 1.3, label: '크게' },
+  { value: 1.7, label: '아주 크게' },
+]
+
+/** 기준 크기 — 좁은 화면에서도 읽히고, 넓은 화면에서 과하게 커지지도 않는다 */
+const BASE_SIZE = 'clamp(0.95rem, 1.9vw, 1.5rem)'
+
 export function SubtitleOverlay() {
+  const scale = useAppStore((s) => s.videoSubtitleScale)
   const text = useAppStore((state) => {
     if (!state.videoSubtitles || state.hideSubtitles) return ''
 
@@ -62,7 +79,10 @@ export function SubtitleOverlay() {
         영상 위 글자는 배경을 가리지 않고도 읽혀야 한다. 반투명 판만으로는 밝은
         장면에서 묻히고, 그림자만으로는 복잡한 장면에서 묻힌다 — 둘 다 쓴다.
       */}
-      <p className="max-w-3xl rounded-md bg-black/55 px-3 py-1 text-center text-[clamp(0.95rem,1.9vw,1.5rem)] font-medium leading-snug text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.9)]">
+      <p
+        style={{ fontSize: `calc(${BASE_SIZE} * ${scale})` }}
+        className="max-w-[92%] rounded-md bg-black/55 px-3 py-1 text-center font-medium leading-snug text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.9)]"
+      >
         {text}
       </p>
     </div>

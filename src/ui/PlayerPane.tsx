@@ -67,8 +67,9 @@ export function PlayerPane({ mediaRef, youtubeRef, theater }: Props) {
 
   return (
     // 자막을 영상 위에 얹으려면 기준이 될 상자가 필요하다. 높이는 이 상자가 쥐고
-    // 영상은 그 안을 채운다 — 자막이 영상 밖으로 벗어나지 않는다
-    <div className={`relative w-full bg-black ${height}`}>
+    // 영상은 그 안을 채운다. overflow-hidden은 마지노선이다 — 글자를 아주 크게
+    // 키운 채 긴 문장을 만나면 자막이 위로 자라 앱 화면을 침범한다
+    <div className={`relative w-full overflow-hidden bg-black ${height}`}>
       <video
         ref={mediaRef as React.RefObject<HTMLVideoElement>}
         src={media.src}

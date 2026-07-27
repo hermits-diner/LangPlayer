@@ -100,6 +100,13 @@ interface AppState {
    * "정답을 보지 않겠다"는 선언이라 화면에만 예외를 둘 수 없다.
    */
   videoSubtitles: boolean
+  /**
+   * 화면 자막 글자 크기 배수 (1 = 보통).
+   *
+   * 화면에서 얼마나 떨어져 보는지가 사람마다 달라서 고정 크기로는 맞출 수 없다.
+   * 노트북을 코앞에 두는 사람과 TV에 연결해 보는 사람의 요구가 정반대다.
+   */
+  videoSubtitleScale: number
   /** 반복을 다 채우면 자동으로 다음 문장으로 넘어간다 */
   autoAdvance: boolean
   /**
@@ -120,6 +127,7 @@ interface AppState {
     loopSettings: LoopSettings
     hideSubtitles: boolean
     videoSubtitles: boolean
+    videoSubtitleScale: number
     autoAdvance: boolean
   }) => void
   clearAll: () => void
@@ -133,6 +141,7 @@ interface AppState {
 
   toggleHideSubtitles: () => void
   toggleVideoSubtitles: () => void
+  setVideoSubtitleScale: (scale: number) => void
   toggleAutoAdvance: () => void
   setInput: (key: string, text: string) => void
 
@@ -209,6 +218,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
   hideSubtitles: true,
   videoSubtitles: false,
+  videoSubtitleScale: 1,
   autoAdvance: false,
   inputs: {},
 
@@ -246,8 +256,13 @@ export const useAppStore = create<AppState>()((set, get) => ({
       inputs: session.inputs,
     }),
 
-  applyStoredSettings: ({ loopSettings, hideSubtitles, videoSubtitles, autoAdvance }) =>
-    set({ loopSettings, hideSubtitles, videoSubtitles, autoAdvance }),
+  applyStoredSettings: ({
+    loopSettings,
+    hideSubtitles,
+    videoSubtitles,
+    videoSubtitleScale,
+    autoAdvance,
+  }) => set({ loopSettings, hideSubtitles, videoSubtitles, videoSubtitleScale, autoAdvance }),
 
   clearAll: () =>
     set((state) => {
@@ -295,6 +310,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
   toggleHideSubtitles: () => set((state) => ({ hideSubtitles: !state.hideSubtitles })),
 
   toggleVideoSubtitles: () => set((state) => ({ videoSubtitles: !state.videoSubtitles })),
+
+  setVideoSubtitleScale: (videoSubtitleScale) => set({ videoSubtitleScale }),
 
   toggleAutoAdvance: () => set((state) => ({ autoAdvance: !state.autoAdvance })),
 

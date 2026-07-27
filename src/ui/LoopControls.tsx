@@ -1,5 +1,6 @@
 ﻿import { useAppStore } from '../store/useAppStore'
 import { formatTime } from './format'
+import { SUBTITLE_SCALES } from './SubtitleOverlay'
 import { useAutoSync } from './useAutoSync'
 
 const RATES = [0.6, 0.75, 0.9, 1, 1.25]
@@ -34,6 +35,8 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
   const resetSync = useAppStore((s) => s.resetSync)
   const toggleHide = useAppStore((s) => s.toggleHideSubtitles)
   const toggleVideoSubtitles = useAppStore((s) => s.toggleVideoSubtitles)
+  const subtitleScale = useAppStore((s) => s.videoSubtitleScale)
+  const setSubtitleScale = useAppStore((s) => s.setVideoSubtitleScale)
   const toggleAutoAdvance = useAppStore((s) => s.toggleAutoAdvance)
 
   const auto = useAutoSync()
@@ -237,6 +240,24 @@ export function LoopControls({ onStop, onTapSyncStart, onTapSyncMark, tapMode }:
         >
           화면 자막
         </button>
+
+        {/* 크기 선택은 화면 자막을 켰을 때만 — 꺼 두면 아무 의미 없는 칸이다 */}
+        {videoSubtitles && !hideSubtitles && (
+          <select
+            value={subtitleScale}
+            onChange={(e) => setSubtitleScale(Number(e.target.value))}
+            title="화면 자막 글자 크기"
+            aria-label="화면 자막 글자 크기"
+            className="select"
+          >
+            {SUBTITLE_SCALES.map((size) => (
+              <option key={size.value} value={size.value}>
+                {size.label}
+              </option>
+            ))}
+          </select>
+        )}
+
         <button type="button" onClick={toggleHide} className={`chip ${hideSubtitles ? 'chip-active' : ''}`}>
           {hideSubtitles ? '자막 숨김' : '자막 보임'}
         </button>

@@ -48,6 +48,7 @@ export function usePersistence() {
         loopSettings: deserializeLoopSettings(row.loopSettings),
         hideSubtitles: row.hideSubtitles,
         videoSubtitles: row.videoSubtitles ?? false,
+        videoSubtitleScale: row.videoSubtitleScale ?? 1,
         autoAdvance: row.autoAdvance,
       })
     })
@@ -61,6 +62,7 @@ export function usePersistence() {
   const loopSettings = useAppStore((s) => s.loopSettings)
   const hideSubtitles = useAppStore((s) => s.hideSubtitles)
   const videoSubtitles = useAppStore((s) => s.videoSubtitles)
+  const videoSubtitleScale = useAppStore((s) => s.videoSubtitleScale)
   const autoAdvance = useAppStore((s) => s.autoAdvance)
 
   useEffect(() => {
@@ -70,12 +72,13 @@ export function usePersistence() {
         loopSettings: serializeLoopSettings(loopSettings),
         hideSubtitles,
         videoSubtitles,
+        videoSubtitleScale,
         autoAdvance,
       })
     }, SAVE_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [loopSettings, hideSubtitles, videoSubtitles, autoAdvance])
+  }, [loopSettings, hideSubtitles, videoSubtitles, videoSubtitleScale, autoAdvance])
 
   // ─── 세션 복원 ──────────────────────────────────────────────────
   useEffect(() => {

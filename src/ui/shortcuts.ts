@@ -69,6 +69,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: '화면',
     items: [
       { keys: ['F9'], label: '극장 모드 — 영상을 키우고 받아쓰기 창을 접는다' },
+      { keys: ['경계선 끌기'], label: '영상 크기 조절 (두 번 클릭하면 기본 크기)' },
       { keys: ['화면 자막'], label: '영상 위에 현재 문장을 띄운다 (자막 숨김이면 함께 숨는다)' },
       { keys: ['Ctrl+T'], label: '텍스트창 열기 / 닫기' },
       { keys: ['F2'], label: '자막 원문 보기' },

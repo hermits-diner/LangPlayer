@@ -7,6 +7,8 @@ interface Props {
   youtubeRef: React.RefObject<HTMLDivElement | null>
   /** 극장 모드 — 영상이 남은 공간을 다 쓴다 */
   theater: boolean
+  /** 화면 높이의 몇 %를 쓸지. 아래 경계선을 끌어 정한다 */
+  heightVh: number
 }
 
 /**
@@ -14,22 +16,26 @@ interface Props {
  *
  * 평소에는 화면 높이의 일정 비율로 묶어 둔다. 영상 원본 비율에 맡기면 와이드
  * 화면에서 영상이 세로를 다 먹어버려 정작 중요한 반복 컨트롤과 받아쓰기 창이
- * 화면 밖으로 밀린다. 받아쓰기를 쉬고 보기만 할 때는 극장 모드로 넓힌다.
+ * 화면 밖으로 밀린다. 그 비율은 아래 경계선을 끌어 바꿀 수 있고, 받아쓰기를
+ * 쉬고 보기만 할 때는 극장 모드로 넓힌다.
+ *
+ * 높이를 픽셀이 아니라 vh로 잡는 이유는 창 크기가 바뀌어도 비율이 유지되어야
+ * 하기 때문이다 — 노트북에서 잡아 둔 크기가 큰 화면에서 우표만 해지면 곤란하다.
  */
-const NORMAL_HEIGHT = 'h-[34vh] min-h-44'
 const THEATER_HEIGHT = 'min-h-0 flex-1'
 
-export function PlayerPane({ mediaRef, youtubeRef, theater }: Props) {
+export function PlayerPane({ mediaRef, youtubeRef, theater, heightVh }: Props) {
   const media = useAppStore((s) => s.media)
   const setError = useAppStore((s) => s.setError)
 
   if (!media) return null
 
-  const height = theater ? THEATER_HEIGHT : NORMAL_HEIGHT
+  const height = theater ? THEATER_HEIGHT : 'shrink-0'
+  const sizing = theater ? undefined : { height: `${heightVh}vh` }
 
   if (media.kind === 'youtube') {
     return (
-      <div className={`relative flex w-full items-center justify-center bg-black ${height}`}>
+      <div style={sizing} className={`relative flex w-full items-center justify-center bg-black ${height}`}>
         {/* YouTube IFrame API가 이 div를 iframe으로 교체한다 */}
         <div ref={youtubeRef} className="h-full w-full" />
         <SubtitleOverlay />
@@ -40,6 +46,7 @@ export function PlayerPane({ mediaRef, youtubeRef, theater }: Props) {
   if (media.kind === 'audio') {
     return (
       <div
+        style={sizing}
         className={`relative flex w-full flex-col items-center justify-center gap-7 overflow-hidden px-8 ${height}`}
       >
         {/* 오디오는 볼 것이 없다. 빈 화면을 그냥 두면 죽어 보이므로 은은한 빛을 깐다 */}
@@ -69,7 +76,7 @@ export function PlayerPane({ mediaRef, youtubeRef, theater }: Props) {
     // 자막을 영상 위에 얹으려면 기준이 될 상자가 필요하다. 높이는 이 상자가 쥐고
     // 영상은 그 안을 채운다. overflow-hidden은 마지노선이다 — 글자를 아주 크게
     // 키운 채 긴 문장을 만나면 자막이 위로 자라 앱 화면을 침범한다
-    <div className={`relative w-full overflow-hidden bg-black ${height}`}>
+    <div style={sizing} className={`relative w-full overflow-hidden bg-black ${height}`}>
       <video
         ref={mediaRef as React.RefObject<HTMLVideoElement>}
         src={media.src}

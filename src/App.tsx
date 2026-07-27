@@ -5,7 +5,7 @@ import { HtmlMediaAdapter } from './core/player/HtmlMediaAdapter'
 import type { PlayerAdapter } from './core/player/PlayerAdapter'
 import { YouTubeAdapter } from './core/player/YouTubeAdapter'
 import { toSrt } from './core/subtitle/export'
-import { useAppStore } from './store/useAppStore'
+import { clampPlayerHeight, DEFAULT_PLAYER_HEIGHT_VH, useAppStore } from './store/useAppStore'
 import { useTextStore } from './store/useTextStore'
 import { AppMenu } from './ui/AppMenu'
 import { DictationPane } from './ui/DictationPane'
@@ -66,6 +66,16 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   /** 극장 모드 — 영상을 키우고 받아쓰기 창을 접는다 */
   const [theater, setTheater] = useState(false)
+  /**
+   * 재생 영역 높이 — 드래그 중에는 여기서만 굴린다.
+   *
+   * 스토어에 매 프레임 쓰면 문장 목록 수백 줄이 함께 다시 그려져 드래그가
+   * 끈적해진다. 손을 뗄 때 한 번만 스토어에 넘겨 저장한다.
+   */
+  const storedPlayerHeight = useAppStore((s) => s.playerHeightVh)
+  const [playerHeightVh, setPlayerHeightVh] = useState(storedPlayerHeight)
+  const resizing = useRef(false)
+
   const [volume, setVolumeState] = useState(1)
   const [durationSec, setDurationSec] = useState(0)
   const [view, setView] = useState<WaveformView>({ startSec: 0, endSec: 60 })
@@ -219,6 +229,48 @@ export default function App() {
   const zoomToAll = useCallback(() => {
     setView({ startSec: 0, endSec: Math.max(MIN_VIEW_SEC, totalSec) })
   }, [totalSec])
+
+  /**
+   * 영상과 음파창 사이 경계선 끌기.
+   *
+   * 절대 좌표가 아니라 **움직인 거리**로 계산한다. 경계선 위에는 머리글과
+   * 알림 줄이 있고 그 높이가 상황에 따라 달라지는데, 절대 좌표를 쓰면 그때마다
+   * 경계선이 마우스를 벗어난다.
+   */
+  const startResize = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const handle = e.currentTarget
+    handle.setPointerCapture(e.pointerId)
+
+    const startY = e.clientY
+    const startVh = useAppStore.getState().playerHeightVh
+    resizing.current = true
+
+    const onMove = (event: PointerEvent) => {
+      const deltaVh = ((event.clientY - startY) / window.innerHeight) * 100
+      setPlayerHeightVh(clampPlayerHeight(startVh + deltaVh))
+    }
+
+    const onUp = (event: PointerEvent) => {
+      handle.releasePointerCapture(event.pointerId)
+      handle.removeEventListener('pointermove', onMove)
+      handle.removeEventListener('pointerup', onUp)
+      handle.removeEventListener('pointercancel', onUp)
+      resizing.current = false
+
+      const deltaVh = ((event.clientY - startY) / window.innerHeight) * 100
+      useAppStore.getState().setPlayerHeightVh(startVh + deltaVh)
+    }
+
+    handle.addEventListener('pointermove', onMove)
+    handle.addEventListener('pointerup', onUp)
+    handle.addEventListener('pointercancel', onUp)
+  }, [])
+
+  const resetPlayerHeight = useCallback(() => {
+    setPlayerHeightVh(DEFAULT_PLAYER_HEIGHT_VH)
+    useAppStore.getState().setPlayerHeightVh(DEFAULT_PLAYER_HEIGHT_VH)
+  }, [])
 
   const adjustVolume = useCallback((delta: number) => {
     setVolumeState((current) => {
@@ -475,6 +527,11 @@ export default function App() {
     loopRef.current?.updateSettings(loopSettings)
   }, [loopSettings])
 
+  // 저장해 둔 높이는 앱이 뜬 뒤에 도착한다. 끌고 있는 중이라면 손을 방해하지 않는다
+  useEffect(() => {
+    if (!resizing.current) setPlayerHeightVh(storedPlayerHeight)
+  }, [storedPlayerHeight])
+
   // 새 미디어가 준비되면 전체 파형이 보이도록 맞춘다
   useEffect(() => {
     if (totalSec > 0) setView({ startSec: 0, endSec: totalSec })
@@ -609,9 +666,33 @@ export default function App() {
 
       <main className="flex min-h-0 flex-1">
         <section className="relative flex min-w-0 flex-1 flex-col">
-          <PlayerPane mediaRef={mediaRef} youtubeRef={youtubeRef} theater={theater} />
+          <PlayerPane
+            mediaRef={mediaRef}
+            youtubeRef={youtubeRef}
+            theater={theater}
+            heightVh={playerHeightVh}
+          />
 
-          <div className="h-24 shrink-0 border-y border-white/10">
+          {/* 영상과 음파창 사이의 손잡이. 극장 모드에서는 영상이 남는 높이를 다 쓰므로 뺀다 */}
+          {!theater && (
+            <div
+              role="separator"
+              aria-orientation="horizontal"
+              aria-label="영상 크기 조절"
+              onPointerDown={startResize}
+              onDoubleClick={resetPlayerHeight}
+              title="끌어서 영상 크기를 바꿉니다 · 두 번 클릭하면 기본 크기"
+              className="group relative h-1.5 shrink-0 cursor-row-resize border-y border-white/10 transition-colors duration-150 hover:border-sky-400/40 hover:bg-sky-400/10"
+            >
+              {/* 잡을 수 있는 곳임을 알리는 표시 — 평소엔 물러나 있다가 가까이 오면 드러난다 */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 h-0.5 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/15 transition group-hover:bg-sky-400/60"
+              />
+            </div>
+          )}
+
+          <div className={`h-24 shrink-0 border-b border-white/10 ${theater ? 'border-t' : ''}`}>
             <Waveform
               onPlayRange={playRange}
               onTogglePlay={togglePlay}

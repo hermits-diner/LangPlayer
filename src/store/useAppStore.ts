@@ -65,6 +65,20 @@ export function segmentKey(segment: Segment): string {
  */
 export const MIN_SPLIT_MARGIN_SEC = 0.5
 
+/**
+ * 재생 영역 높이의 기본값과 한계 (화면 높이 대비 %).
+ *
+ * 아래로는 영상이 형태를 잃지 않을 만큼, 위로는 반복 컨트롤과 받아쓰기 칸이
+ * 화면에 남을 만큼만 허용한다. 더 키우고 싶으면 극장 모드(F9)가 있다.
+ */
+export const DEFAULT_PLAYER_HEIGHT_VH = 34
+export const MIN_PLAYER_HEIGHT_VH = 15
+export const MAX_PLAYER_HEIGHT_VH = 72
+
+export function clampPlayerHeight(vh: number): number {
+  return Math.min(MAX_PLAYER_HEIGHT_VH, Math.max(MIN_PLAYER_HEIGHT_VH, Math.round(vh * 10) / 10))
+}
+
 /** 이 지점에서 문장을 갈라도 양쪽이 쓸 만한 길이로 남는가 */
 export function canSplitAt(segment: { start: number; end: number }, timeSec: number): boolean {
   return (
@@ -107,6 +121,8 @@ interface AppState {
    * 노트북을 코앞에 두는 사람과 TV에 연결해 보는 사람의 요구가 정반대다.
    */
   videoSubtitleScale: number
+  /** 재생 영역이 차지하는 화면 높이 비율(%). 영상과 음파창 사이 경계선을 끌어 정한다 */
+  playerHeightVh: number
   /** 반복을 다 채우면 자동으로 다음 문장으로 넘어간다 */
   autoAdvance: boolean
   /**
@@ -128,6 +144,7 @@ interface AppState {
     hideSubtitles: boolean
     videoSubtitles: boolean
     videoSubtitleScale: number
+    playerHeightVh: number
     autoAdvance: boolean
   }) => void
   clearAll: () => void
@@ -142,6 +159,7 @@ interface AppState {
   toggleHideSubtitles: () => void
   toggleVideoSubtitles: () => void
   setVideoSubtitleScale: (scale: number) => void
+  setPlayerHeightVh: (vh: number) => void
   toggleAutoAdvance: () => void
   setInput: (key: string, text: string) => void
 
@@ -229,6 +247,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   hideSubtitles: true,
   videoSubtitles: false,
   videoSubtitleScale: 1,
+  playerHeightVh: DEFAULT_PLAYER_HEIGHT_VH,
   autoAdvance: false,
   inputs: {},
 
@@ -271,8 +290,17 @@ export const useAppStore = create<AppState>()((set, get) => ({
     hideSubtitles,
     videoSubtitles,
     videoSubtitleScale,
+    playerHeightVh,
     autoAdvance,
-  }) => set({ loopSettings, hideSubtitles, videoSubtitles, videoSubtitleScale, autoAdvance }),
+  }) =>
+    set({
+      loopSettings,
+      hideSubtitles,
+      videoSubtitles,
+      videoSubtitleScale,
+      playerHeightVh: clampPlayerHeight(playerHeightVh),
+      autoAdvance,
+    }),
 
   clearAll: () =>
     set((state) => {
@@ -322,6 +350,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
   toggleVideoSubtitles: () => set((state) => ({ videoSubtitles: !state.videoSubtitles })),
 
   setVideoSubtitleScale: (videoSubtitleScale) => set({ videoSubtitleScale }),
+
+  setPlayerHeightVh: (vh) => set({ playerHeightVh: clampPlayerHeight(vh) }),
 
   toggleAutoAdvance: () => set((state) => ({ autoAdvance: !state.autoAdvance })),
 

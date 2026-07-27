@@ -13,7 +13,7 @@ import {
   serializeLoopSettings,
   sessionKeyOf,
 } from '../core/storage/serialize'
-import { useAppStore } from '../store/useAppStore'
+import { DEFAULT_PLAYER_HEIGHT_VH, useAppStore } from '../store/useAppStore'
 
 /** 저장 디바운스 — 타이핑 한 글자마다 IndexedDB를 두드리지 않는다 */
 const SAVE_DEBOUNCE_MS = 800
@@ -49,6 +49,7 @@ export function usePersistence() {
         hideSubtitles: row.hideSubtitles,
         videoSubtitles: row.videoSubtitles ?? false,
         videoSubtitleScale: row.videoSubtitleScale ?? 1,
+        playerHeightVh: row.playerHeightVh ?? DEFAULT_PLAYER_HEIGHT_VH,
         autoAdvance: row.autoAdvance,
       })
     })
@@ -63,6 +64,7 @@ export function usePersistence() {
   const hideSubtitles = useAppStore((s) => s.hideSubtitles)
   const videoSubtitles = useAppStore((s) => s.videoSubtitles)
   const videoSubtitleScale = useAppStore((s) => s.videoSubtitleScale)
+  const playerHeightVh = useAppStore((s) => s.playerHeightVh)
   const autoAdvance = useAppStore((s) => s.autoAdvance)
 
   useEffect(() => {
@@ -73,12 +75,13 @@ export function usePersistence() {
         hideSubtitles,
         videoSubtitles,
         videoSubtitleScale,
+        playerHeightVh,
         autoAdvance,
       })
     }, SAVE_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [loopSettings, hideSubtitles, videoSubtitles, videoSubtitleScale, autoAdvance])
+  }, [loopSettings, hideSubtitles, videoSubtitles, videoSubtitleScale, playerHeightVh, autoAdvance])
 
   // ─── 세션 복원 ──────────────────────────────────────────────────
   useEffect(() => {

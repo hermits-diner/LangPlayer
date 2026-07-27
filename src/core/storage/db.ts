@@ -49,6 +49,8 @@ export interface SettingsRow {
   videoSubtitles?: boolean
   /** 화면 자막 글자 크기 배수 */
   videoSubtitleScale?: number
+  /** 재생 영역이 차지하는 화면 높이 비율(%) */
+  playerHeightVh?: number
   autoAdvance: boolean
 }
 
